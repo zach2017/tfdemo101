@@ -3,6 +3,7 @@ I'll give you both: copy-paste CLI commands and a CloudFormation template that s
 A quick note before the commands: you only create the OIDC provider **once per AWS account**. If you (or anyone) ever created an EKS or GitHub OIDC setup before, it may already exist — creating a duplicate fails with `EntityAlreadyExists`, which is harmless. The CloudFormation route is better here precisely because a stack tracks what it created and won't double-create.
 
 ---
+# Force Run Pipeline
 ```
 gh workflow run cluster.yml --repo "$GH_ORG/$GH_REPO" --ref main
 ```
