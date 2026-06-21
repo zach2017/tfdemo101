@@ -42,8 +42,8 @@ module "vpc" {
   # container images, talk to AWS APIs) without being publicly reachable.
   # single_nat_gateway = true saves money in dev. For prod set it to false so
   # each AZ has its own NAT gateway (HA, but ~3x the cost).
-  enable_nat_gateway   = true
-  single_nat_gateway   = var.environment != "prod"
+  enable_nat_gateway     = true
+  single_nat_gateway     = var.environment != "prod"
   one_nat_gateway_per_az = var.environment == "prod"
 
   # DNS support is required for EKS service discovery to work.
