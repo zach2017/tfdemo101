@@ -1,4 +1,4 @@
-# EKS Platform — Terraform + GitHub Actions
+# EKS Platform — Terraform + GitHub Actions 
 
 A production-minded starting point for provisioning an **Amazon EKS** cluster
 with **Terraform**, deployed through a **GitHub Actions** pipeline. This repo
