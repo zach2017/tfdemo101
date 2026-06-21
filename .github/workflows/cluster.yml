@@ -50,8 +50,8 @@ env:
   # AWS credentials step — but you should still set the variable explicitly.
   AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
   WORKING_DIR: terraform/cluster
-  TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
-  TF_LOCK_TABLE: ${{ vars.TF_LOCK_TABLE }}
+  TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET || 'arn:aws:s3:::kafakademo-tfstate-bucket'}}
+  TF_LOCK_TABLE: ${{ vars.TF_LOCK_TABLE || 'kafakademo-tfstate-lock-table' }}
 
 jobs:
   terraform:
