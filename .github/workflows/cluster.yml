@@ -1,0 +1,154 @@
+# ==============================================================================
+# GitHub Actions: Terraform Plan & Apply for the EKS Cluster
+# ==============================================================================
+# WHAT THIS DOES
+#   - On a Pull Request that touches terraform/cluster/**: runs `terraform plan`
+#     and posts the plan as a PR comment so reviewers see the diff BEFORE merge.
+#   - On a push to main that touches terraform/cluster/**: runs `terraform apply`
+#     to roll the change out.
+#   - Can also be run manually from the Actions tab (workflow_dispatch).
+#
+# AUTHENTICATION
+#   Uses GitHub OIDC to assume an AWS IAM role. NO long-lived AWS keys are
+#   stored in GitHub. The role ARN is provided via the AWS_ROLE_ARN variable.
+# ==============================================================================
+
+name: EKS Cluster - Terraform
+
+# ---- When does this workflow run? ----
+on:
+  push:
+    branches: [main]
+    paths:
+      - "terraform/cluster/**"
+      - ".github/workflows/cluster.yml"
+  pull_request:
+    paths:
+      - "terraform/cluster/**"
+      - ".github/workflows/cluster.yml"
+  workflow_dispatch: {} # Allows a manual run with a button in the UI.
+
+# ---- Permissions granted to the GITHUB_TOKEN for this run ----
+permissions:
+  id-token: write     # REQUIRED for OIDC: lets the job request an OIDC token.
+  contents: read      # Needed to check out the repo.
+  pull-requests: write # Needed to post the plan comment on PRs.
+
+# Cancel an in-progress run if a newer commit arrives on the same ref. Saves
+# minutes and avoids racing applies.
+concurrency:
+  group: eks-cluster-${{ github.ref }}
+  cancel-in-progress: false # false: never cancel an apply midway.
+
+# ---- Values reused across steps ----
+# These come from repository-level "Variables" (Settings > Secrets and
+# variables > Actions > Variables). They are not secret. Edit them there.
+env:
+  TF_VERSION: "1.9.5"
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  WORKING_DIR: terraform/cluster
+  TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+  TF_LOCK_TABLE: ${{ vars.TF_LOCK_TABLE }}
+
+jobs:
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+
+    # `environment` ties this job to a GitHub Environment. You can attach
+    # required reviewers to the "production" environment so an apply pauses for
+    # human approval. PRs use plan-only so they don't need approval.
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || '' }}
+
+    # Run every `run:` step inside the Terraform directory by default.
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+
+    steps:
+      # 1) Pull the repository code onto the runner.
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2) Exchange the GitHub OIDC token for temporary AWS credentials by
+      #    assuming the IAM role. These creds live only for the job.
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-eks-cluster
+
+      # 3) Install the pinned Terraform CLI version on the runner.
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      # 4) Verify code is canonically formatted. Fails the run if not, which
+      #    keeps the codebase tidy. Run `terraform fmt -recursive` locally to fix.
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+      # 5) Initialize the backend. We pass the bucket/table/key here so the
+      #    backend.tf file stays free of account-specific values.
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="bucket=${TF_STATE_BUCKET}" \
+            -backend-config="dynamodb_table=${TF_LOCK_TABLE}" \
+            -backend-config="key=cluster/terraform.tfstate" \
+            -backend-config="region=${AWS_REGION}"
+
+      # 6) Validate that the configuration is internally consistent (types,
+      #    references, required args). Catches errors before any AWS call.
+      - name: Terraform Validate
+        run: terraform validate -no-color
+
+      # 7) PLAN. Produces a binary plan file (tfplan) and a human-readable text
+      #    version. `-detailed-exitcode` returns 2 when there are changes, which
+      #    we capture without failing the step.
+      - name: Terraform Plan
+        id: plan
+        run: |
+          set +e
+          terraform plan -no-color -input=false -out=tfplan \
+            -var="aws_region=${AWS_REGION}" \
+            -var="project_name=${{ vars.PROJECT_NAME }}" \
+            -var="environment=${{ vars.ENVIRONMENT }}"
+          echo "exitcode=$?" >> "$GITHUB_OUTPUT"
+          terraform show -no-color tfplan > plan.txt
+        continue-on-error: true
+
+      # 8) On PRs, post the plan output as a comment so reviewers can read the
+      #    diff right in the PR. Truncates very long plans to fit GitHub limits.
+      - name: Comment Plan on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let plan = fs.readFileSync('${{ env.WORKING_DIR }}/plan.txt', 'utf8');
+            const max = 60000;
+            if (plan.length > max) {
+              plan = plan.substring(0, max) + "\n\n... output truncated. See the full plan in the Actions log.";
+            }
+            const body = `#### Terraform Plan 📖\n\`\`\`\n${plan}\n\`\`\`\n*Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      # 9) Fail the workflow if the plan step actually errored (exit code 1).
+      #    Exit code 2 (changes present) is fine and should NOT fail the run.
+      - name: Fail if plan errored
+        if: steps.plan.outputs.exitcode == '1'
+        run: exit 1
+
+      # 10) APPLY. Only on a push/dispatch to main — never on a PR. Applies the
+      #     exact plan file produced above so what you reviewed is what ships.
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: terraform apply -no-color -input=false -auto-approve tfplan
