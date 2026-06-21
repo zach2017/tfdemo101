@@ -45,7 +45,10 @@ concurrency:
 # variables > Actions > Variables). They are not secret. Edit them there.
 env:
   TF_VERSION: "1.9.5"
-  AWS_REGION: ${{ vars.AWS_REGION }}
+  # `vars.AWS_REGION` reads a repository/environment *Variable* (not a Secret).
+  # The `|| 'us-east-1'` fallback means a missing/empty variable won't crash the
+  # AWS credentials step — but you should still set the variable explicitly.
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
   WORKING_DIR: terraform/cluster
   TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
   TF_LOCK_TABLE: ${{ vars.TF_LOCK_TABLE }}
@@ -69,6 +72,34 @@ jobs:
       # 1) Pull the repository code onto the runner.
       - name: Checkout
         uses: actions/checkout@v4
+
+      # 1b) PREFLIGHT: fail fast with a readable message if required repository
+      #     Variables are missing. Without this, a missing value produces a
+      #     cryptic "Input required and not supplied: aws-region" further down.
+      #     Set these under: Settings > Secrets and variables > Actions >
+      #     the "Variables" tab (NOT "Secrets").
+      - name: Check required configuration
+        run: |
+          missing=0
+          check() {
+            if [ -z "$2" ]; then
+              echo "::error::Repository variable '$1' is not set (or is empty)."
+              missing=1
+            else
+              echo "✓ $1 is set"
+            fi
+          }
+          check "AWS_ROLE_ARN"    "${{ vars.AWS_ROLE_ARN }}"
+          check "AWS_REGION"      "${{ vars.AWS_REGION }}"
+          check "TF_STATE_BUCKET" "${{ vars.TF_STATE_BUCKET }}"
+          check "TF_LOCK_TABLE"   "${{ vars.TF_LOCK_TABLE }}"
+          check "PROJECT_NAME"    "${{ vars.PROJECT_NAME }}"
+          check "ENVIRONMENT"     "${{ vars.ENVIRONMENT }}"
+          if [ "$missing" -eq 1 ]; then
+            echo "::error::One or more required Variables are missing. Add them under Settings > Secrets and variables > Actions > Variables, then re-run."
+            exit 1
+          fi
+          echo "All required variables are present."
 
       # 2) Exchange the GitHub OIDC token for temporary AWS credentials by
       #    assuming the IAM role. These creds live only for the job.
