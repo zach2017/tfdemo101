@@ -1,0 +1,15 @@
+---
+- name: Configure Web Server with Hello World
+  hosts: webservers
+  # We disable fact gathering because the container doesn't have Python installed
+  gather_facts: false 
+  tasks:
+    - name: Write custom index.html into the Nginx directory
+      raw: |
+        echo '<html>
+                <head><title>Ansible & Terraform</title></head>
+                <body>
+                  <h1>Hello World!</h1>
+                  <p>Provisioned by Terraform, configured locally by Ansible.</p>
+                </body>
+              </html>' > /usr/share/nginx/html/index.html
