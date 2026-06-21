@@ -65,3 +65,11 @@
  1049  cat > dynamodb-lock-policy.json << EOF\n{\n  "Version": "2012-10-17",\n  "Statement": [{\n    "Sid": "TerraformStateLock",\n    "Effect": "Allow",\n    "Action": [\n      "dynamodb:GetItem",\n      "dynamodb:PutItem",\n      "dynamodb:DeleteItem"\n    ],\n    "Resource": "arn:aws:dynamodb:${AWS_REGION}:${ACCOUNT_ID}:table/${LOCK_TABLE}"\n  }]\n}\nEOF\n\n# Confirm the real table name and account landed in the file\ncat dynamodb-lock-policy.json
  1050  aws iam put-role-policy \\n  --role-name "$ROLE_NAME" \\n  --policy-name terraform-state-lock \\n  --policy-document file://dynamodb-lock-policy.json
  1051  history > didthis.txt
+
+aws eks list-clusters --region us-east-1
+aws ec2 describe-nat-gateways --region us-east-1 \
+  --filter "Name=state,Values=available" \
+  --query 'NatGateways[].NatGatewayId'
+
+
+  3. aws cloudformation delete-stack --stack-name github-oidc-eks
