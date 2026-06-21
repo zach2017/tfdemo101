@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EKS Platform Documentation — Terraform + GitHub Actions</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+<style>
+  /* ============================================================
+     IBM Carbon-inspired design system
+     - White background (#ffffff), structural grey (#f4f4f4)
+     - Dark blue / black typography
+     - IBM Plex font family (IBM's own open-source typeface)
+     - Zero border-radius (Carbon uses sharp corners)
+     ============================================================ */
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Serif:wght@400;600&display=swap');
+
+  :root{
+    --ibm-white:#ffffff;
+    --ibm-grey-10:#f4f4f4;
+    --ibm-grey-20:#e0e0e0;
+    --ibm-grey-50:#8d8d8d;
+    --ibm-grey-70:#525252;
+    --ibm-grey-90:#262626;
+    --ibm-grey-100:#161616;
+    --ibm-blue-60:#0f62fe;   /* IBM signature blue */
+    --ibm-blue-70:#0043ce;
+    --ibm-blue-80:#002d9c;
+    --ibm-blue-90:#001d6c;
+    --ibm-cyan:#0072c3;
+    --ibm-green:#198038;
+    --ibm-red:#da1e28;
+    --ibm-yellow:#f1c21b;
+    --base-font:16px;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'IBM Plex Sans',-apple-system,system-ui,sans-serif;
+    background:var(--ibm-white);
+    color:var(--ibm-grey-100);
+    font-size:var(--base-font);
+    line-height:1.6;
+    margin:0;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* Body text scales with the user's chosen size via --base-font.
+     Headings scale relative to it using em so the whole page grows together. */
+  .doc-content{font-size:var(--base-font);}
+  .doc-content h2{font-size:2em;line-height:1.2;font-weight:600;color:var(--ibm-grey-100);letter-spacing:-0.01em;}
+  .doc-content h3{font-size:1.45em;line-height:1.25;font-weight:600;color:var(--ibm-blue-90);}
+  .doc-content h4{font-size:1.15em;font-weight:600;color:var(--ibm-grey-90);}
+  .doc-content p,.doc-content li{font-size:1em;color:var(--ibm-grey-90);}
+  .doc-content strong{font-weight:600;color:var(--ibm-grey-100);}
+
+  /* Monospace for code, sized relative to base font */
+  code,pre,.mono{font-family:'IBM Plex Mono',monospace;}
+  .inline-code{
+    font-family:'IBM Plex Mono',monospace;
+    background:var(--ibm-grey-10);
+    color:var(--ibm-blue-80);
+    padding:0.1em 0.4em;
+    font-size:0.88em;
+    border:1px solid var(--ibm-grey-20);
+  }
+
+  /* Code blocks — dark, Carbon-style */
+  .code-block{
+    background:var(--ibm-grey-100);
+    color:#f4f4f4;
+    padding:1.25rem 1.5rem;
+    overflow-x:auto;
+    font-size:0.85em;
+    line-height:1.7;
+    border-left:3px solid var(--ibm-blue-60);
+    margin:1.25rem 0;
+    white-space:pre;
+  }
+  .code-block .cmt{color:#8d8d8d;font-style:italic;}
+  .code-block .kw{color:#78a9ff;}
+  .code-block .str{color:#a7f0ba;}
+  .code-block .num{color:#ff8389;}
+
+  /* The signature element: a left rule + eyebrow label structure */
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.75em;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--ibm-blue-70);
+    font-weight:500;
+  }
+
+  /* Info-pill buttons that open popups */
+  .info-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:0.3em;
+    background:var(--ibm-blue-60);
+    color:#fff;
+    border:none;
+    padding:0.15em 0.6em;
+    font-size:0.72em;
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:500;
+    letter-spacing:0.03em;
+    cursor:pointer;
+    vertical-align:middle;
+    transition:background 0.15s;
+    text-transform:uppercase;
+  }
+  .info-pill:hover{background:var(--ibm-blue-80);}
+  .info-pill:focus-visible{outline:2px solid var(--ibm-blue-90);outline-offset:2px;}
+
+  /* Modal / popup */
+  .modal-overlay{
+    position:fixed;inset:0;
+    background:rgba(22,22,22,0.7);
+    display:none;
+    align-items:center;justify-content:center;
+    z-index:100;
+    padding:1rem;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal-card{
+    background:#fff;
+    max-width:640px;width:100%;
+    max-height:85vh;overflow-y:auto;
+    border-top:4px solid var(--ibm-blue-60);
+    box-shadow:0 12px 40px rgba(0,0,0,0.3);
+    animation:slideUp 0.2s ease;
+  }
+  @keyframes slideUp{from{transform:translateY(12px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .modal-head{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    padding:1.5rem 1.5rem 0.75rem;
+    border-bottom:1px solid var(--ibm-grey-20);
+  }
+  .modal-body{padding:1.25rem 1.5rem 1.5rem;}
+  .modal-close{
+    background:none;border:none;font-size:1.5rem;line-height:1;
+    cursor:pointer;color:var(--ibm-grey-70);padding:0 0.25rem;
+  }
+  .modal-close:hover{color:var(--ibm-red);}
+
+  /* Reference link rows inside modals */
+  .ref-link{
+    display:flex;align-items:center;gap:0.5rem;
+    padding:0.6rem 0.75rem;
+    background:var(--ibm-grey-10);
+    border-left:3px solid var(--ibm-blue-60);
+    color:var(--ibm-blue-80);
+    text-decoration:none;
+    font-size:0.9em;
+    margin-top:0.5rem;
+    transition:background 0.15s;
+    word-break:break-word;
+  }
+  .ref-link:hover{background:var(--ibm-grey-20);}
+  .ref-link::before{content:"↗";font-weight:700;}
+
+  /* Generic external link styling in body */
+  .ext-link{color:var(--ibm-blue-70);text-decoration:underline;text-underline-offset:2px;font-weight:500;}
+  .ext-link:hover{color:var(--ibm-blue-90);}
+
+  /* Callout boxes */
+  .callout{padding:1rem 1.25rem;margin:1.25rem 0;border-left:4px solid;font-size:0.95em;}
+  .callout-note{background:#edf5ff;border-color:var(--ibm-blue-60);}
+  .callout-warn{background:#fff8e1;border-color:var(--ibm-yellow);}
+  .callout-danger{background:#fff1f1;border-color:var(--ibm-red);}
+  .callout-tip{background:#defbe6;border-color:var(--ibm-green);}
+  .callout-title{font-weight:600;display:block;margin-bottom:0.25rem;}
+
+  /* Step number markers — used because setup IS a real sequence */
+  .step-num{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:2em;height:2em;min-width:2em;
+    background:var(--ibm-blue-60);color:#fff;
+    font-family:'IBM Plex Mono',monospace;font-weight:600;
+    font-size:0.9em;
+  }
+
+  /* Tables */
+  .doc-table{width:100%;border-collapse:collapse;margin:1.25rem 0;font-size:0.9em;}
+  .doc-table th{background:var(--ibm-grey-100);color:#fff;text-align:left;padding:0.6rem 0.85rem;font-weight:500;}
+  .doc-table td{padding:0.6rem 0.85rem;border-bottom:1px solid var(--ibm-grey-20);vertical-align:top;}
+  .doc-table tr:nth-child(even){background:var(--ibm-grey-10);}
+  .doc-table code{font-size:0.92em;}
+
+  /* Sidebar nav */
+  .nav-link{
+    display:block;padding:0.4rem 0.75rem;
+    color:var(--ibm-grey-70);text-decoration:none;
+    font-size:0.875rem;border-left:2px solid transparent;
+    transition:all 0.15s;
+  }
+  .nav-link:hover{background:var(--ibm-grey-10);color:var(--ibm-grey-100);border-left-color:var(--ibm-grey-50);}
+  .nav-link.active{border-left-color:var(--ibm-blue-60);color:var(--ibm-blue-70);font-weight:500;background:var(--ibm-grey-10);}
+
+  /* Font-size control */
+  .fontctl{display:flex;align-items:center;gap:0.5rem;}
+  .fontctl input[type=range]{
+    -webkit-appearance:none;appearance:none;
+    height:4px;background:var(--ibm-grey-20);outline:none;cursor:pointer;
+    width:90px;
+  }
+  .fontctl input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;
+    width:16px;height:16px;background:var(--ibm-blue-60);cursor:pointer;border-radius:0;
+  }
+  .fontctl input[type=range]::-moz-range-thumb{
+    width:16px;height:16px;background:var(--ibm-blue-60);cursor:pointer;border:none;border-radius:0;
+  }
+  .font-btn{
+    background:var(--ibm-grey-100);color:#fff;border:none;
+    width:28px;height:28px;cursor:pointer;font-size:0.9rem;font-weight:600;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .font-btn:hover{background:var(--ibm-blue-60);}
+  .font-btn:disabled{background:var(--ibm-grey-20);color:var(--ibm-grey-50);cursor:not-allowed;}
+
+  /* Mobile menu toggle */
+  .menu-toggle{display:none;}
+  @media(max-width:1024px){
+    .sidebar{position:fixed;top:0;left:0;height:100vh;width:280px;transform:translateX(-100%);transition:transform 0.25s;z-index:90;background:#fff;box-shadow:2px 0 12px rgba(0,0,0,0.15);overflow-y:auto;}
+    .sidebar.open{transform:translateX(0);}
+    .menu-toggle{display:flex;}
+    .main-wrap{margin-left:0 !important;}
+  }
+
+  /* Diagram box */
+  .diagram{background:var(--ibm-grey-10);border:1px solid var(--ibm-grey-20);padding:1.5rem;margin:1.5rem 0;overflow-x:auto;}
+
+  /* Architecture ASCII */
+  .ascii{font-family:'IBM Plex Mono',monospace;font-size:0.78em;line-height:1.4;white-space:pre;color:var(--ibm-grey-90);}
+
+  ::selection{background:var(--ibm-blue-60);color:#fff;}
+
+  /* Scroll-margin so anchored headers aren't hidden under sticky bar */
+  .doc-content h2[id], .doc-content h3[id]{scroll-margin-top:90px;}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     STICKY TOP BAR — title, font-size control, menu toggle
+     ============================================================ -->
+<header style="position:sticky;top:0;z-index:80;background:var(--ibm-grey-100);border-bottom:1px solid var(--ibm-grey-90);">
+  <div style="max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:0.6rem 1rem;gap:1rem;">
+    <div style="display:flex;align-items:center;gap:0.75rem;min-width:0;">
+      <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation" style="background:none;border:none;color:#fff;cursor:pointer;padding:0.25rem;flex-direction:column;gap:4px;">
+        <span style="display:block;width:20px;height:2px;background:#fff;"></span>
+        <span style="display:block;width:20px;height:2px;background:#fff;"></span>
+        <span style="display:block;width:20px;height:2px;background:#fff;"></span>
+      </button>
+      <div style="min-width:0;">
+        <div style="color:#fff;font-weight:600;font-size:0.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">EKS Platform Docs</div>
+        <div class="mono" style="color:var(--ibm-grey-50);font-size:0.7rem;white-space:nowrap;">Terraform · GitHub Actions · AWS</div>
+      </div>
+    </div>
+
+    <!-- Font-size control: A− slider A+ , range 14–36px -->
+    <div class="fontctl" role="group" aria-label="Text size control">
+      <button class="font-btn" id="fontDown" aria-label="Decrease text size">A−</button>
+      <input type="range" id="fontRange" min="14" max="36" value="16" step="1" aria-label="Text size slider">
+      <button class="font-btn" id="fontUp" aria-label="Increase text size">A+</button>
+      <span class="mono" id="fontVal" style="color:var(--ibm-grey-50);font-size:0.72rem;min-width:36px;text-align:right;">16px</span>
+    </div>
+  </div>
+</header>
+
+<!-- Backdrop for mobile sidebar -->
+<div id="navBackdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:85;"></div>
+
+<div style="max-width:1400px;margin:0 auto;display:flex;">
+
+  <!-- ============================================================
+       SIDEBAR NAVIGATION
+       ============================================================ -->
+  <aside class="sidebar" id="sidebar" style="width:260px;flex-shrink:0;border-right:1px solid var(--ibm-grey-20);">
+    <nav style="position:sticky;top:0;padding:1.5rem 0.5rem;max-height:100vh;overflow-y:auto;">
+      <div class="eyebrow" style="padding:0 0.75rem 0.5rem;">On this page</div>
+      <a class="nav-link" href="#intro">Overview</a>
+      <a class="nav-link" href="#what-is-eks">1 · What is EKS?</a>
+      <a class="nav-link" href="#what-is-terraform">2 · What is Terraform?</a>
+      <a class="nav-link" href="#why-pipeline">3 · Why a pipeline?</a>
+      <a class="nav-link" href="#repo-structure">4 · Repo structure</a>
+      <a class="nav-link" href="#architecture">5 · Architecture</a>
+      <a class="nav-link" href="#prereqs">6 · Prerequisites</a>
+      <a class="nav-link" href="#setup">7 · Step-by-step setup</a>
+      <a class="nav-link" href="#tf-files">8 · Terraform files</a>
+      <a class="nav-link" href="#pipeline-files">9 · The pipeline</a>
+      <a class="nav-link" href="#changes">10 · Making changes</a>
+      <a class="nav-link" href="#extending">11 · Node groups & tenants</a>
+      <a class="nav-link" href="#versions">12 · Versions & cost</a>
+      <a class="nav-link" href="#troubleshoot">13 · Troubleshooting</a>
+      <a class="nav-link" href="#references">14 · All references</a>
+    </nav>
+  </aside>
+
+  <!-- ============================================================
+       MAIN CONTENT
+       ============================================================ -->
+  <main class="main-wrap doc-content" style="flex:1;min-width:0;padding:2rem 1.5rem 5rem;max-width:900px;">
+
+  <!-- HERO -->
+  <section id="intro" style="margin-bottom:3rem;">
+    <div class="eyebrow">Documentation · Beginner friendly</div>
+    <h1 style="font-size:2.6em;line-height:1.1;font-weight:700;letter-spacing:-0.02em;margin:0.5rem 0 1rem;color:var(--ibm-grey-100);">
+      Build an AWS Kubernetes cluster<br>with Terraform &amp; GitHub Actions
+    </h1>
+    <p style="font-size:1.15em;color:var(--ibm-grey-70);max-width:680px;">
+      This guide explains, in plain language, how to create a real cloud computer cluster
+      and keep it under version control. We start from the very basics — what these words even mean —
+      and build up to a working setup you can copy. Every tricky term has an
+      <span class="info-pill" style="cursor:default;">ⓘ INFO</span> button with a deeper explanation and a link to the official documentation.
+    </p>
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:1.5rem;">
+      <a href="#what-is-eks" class="info-pill" style="font-size:0.85em;padding:0.5em 1em;text-decoration:none;">Start from the basics ↓</a>
+      <a href="#setup" class="info-pill" style="font-size:0.85em;padding:0.5em 1em;background:var(--ibm-grey-90);text-decoration:none;">Jump to setup steps ↓</a>
+    </div>
+
+    <div class="callout callout-note" style="margin-top:2rem;">
+      <span class="callout-title">📋 How to read this page</span>
+      Use the <strong>A− / A+ buttons or the slider</strong> at the top to make the text bigger or smaller
+      (anywhere from 14px up to 36px) — handy on phones or if you just want larger type. On a phone,
+      tap the <strong>≡ menu icon</strong> (top left) to jump between sections.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 1. WHAT IS EKS -->
+  <!-- ============================================================ -->
+  <section style="margin-bottom:3rem;">
+    <div class="eyebrow">Section 1</div>
+    <h2 id="what-is-eks">What is EKS? (And what is Kubernetes?)</h2>
+
+    <p>Let's start with a story. Imagine you wrote a small app — maybe a website. To run it, you need a
+    computer that's always on. That's a <strong>server</strong>. Easy enough: one app, one server.</p>
+
+    <p>But what happens when your app gets popular? One server isn't enough. Now you have ten servers,
+    and you need someone to decide which server runs which copy of your app, to restart copies that crash,
+    to add more servers when traffic spikes, and to take servers offline for repairs without anyone noticing.
+    Doing all of that by hand would be a full-time job — actually, many full-time jobs.</p>
+
+    <h3 id="kubernetes-intro">Kubernetes: the robot manager for your apps</h3>
+
+    <p><strong>Kubernetes</strong> (often shortened to <strong>K8s</strong> — there are 8 letters between the
+    "K" and the "s") is software that does that managing <em>for</em> you. You tell it
+    "I always want 5 copies of my app running," and it makes that true. A copy crashes? Kubernetes starts a
+    new one. Need to update your app? Kubernetes swaps copies out one at a time so the app never goes fully
+    dark. Think of it as an extremely reliable robot manager standing over a room full of computers, making
+    sure your apps are always running the way you asked.
+    <button class="info-pill" data-modal="m-k8s">ⓘ More on Kubernetes</button></p>
+
+    <p>The little packaged-up copies of your app that Kubernetes moves around are called
+    <strong>containers</strong>, and the individual app units Kubernetes schedules are called
+    <strong>pods</strong>. <button class="info-pill" data-modal="m-pods">ⓘ Pods &amp; containers</button></p>
+
+    <h3 id="why-managed">Why "managed"? Enter EKS</h3>
+
+    <p>Here's the catch: Kubernetes itself is complicated to run. The "brain" of Kubernetes — the part that
+    makes all those decisions — is a cluster of computers that needs to be set up, secured, backed up, and
+    patched constantly. Running that brain yourself is hard and risky.</p>
+
+    <p><strong>Amazon EKS</strong> (Elastic Kubernetes Service) solves this. EKS is Amazon's
+    <strong>managed</strong> Kubernetes. The word "managed" is the whole point:
+    <strong>Amazon runs and babysits the Kubernetes brain for you</strong>, around the clock, spread across
+    multiple data centers so it doesn't go down. You just say "give me a cluster," and Amazon hands you a
+    working, secure Kubernetes brain. You bring the worker computers that run your actual apps.
+    <button class="info-pill" data-modal="m-eks">ⓘ EKS official overview</button></p>
+
+    <div class="diagram">
+      <div class="eyebrow" style="margin-bottom:0.75rem;">The two halves of any Kubernetes cluster</div>
+      <div class="ascii">┌───────────────────────────────────────────────────────────┐
+│  CONTROL PLANE  ("the brain")        ← Amazon runs this    │
+│  • API server    (you send commands here)                  │
+│  • Scheduler     (decides where apps run)                  │
+│  • etcd database (remembers everything)                    │
+└───────────────────────────────────────────────────────────┘
+                          ▲
+                          │  gives orders to
+                          ▼
+┌───────────────────────────────────────────────────────────┐
+│  DATA PLANE  ("the muscle")          ← YOU run this        │
+│  • Worker Node 1   [ your app ] [ your app ]               │
+│  • Worker Node 2   [ your app ] [ database  ]              │
+│  • Worker Node 3   [ ...scales up and down... ]            │
+│    (these are EC2 virtual computers in a "node group")     │
+└───────────────────────────────────────────────────────────┘</div>
+    </div>
+
+    <h3 id="eks-pieces">The EKS pieces you'll hear about</h3>
+    <p>A few EKS-specific words show up everywhere. Here they are in plain English:</p>
+    <ul style="padding-left:1.25rem;">
+      <li style="margin-bottom:0.6rem;"><strong>Managed node group</strong> — a batch of worker computers (Amazon EC2 machines) that EKS sets up and looks after for you. You say "I want between 1 and 3 of these," and EKS keeps that true. <button class="info-pill" data-modal="m-nodegroup">ⓘ Node groups</button></li>
+      <li style="margin-bottom:0.6rem;"><strong>Add-ons</strong> — small helper programs every cluster needs: networking for pods (<span class="inline-code">vpc-cni</span>), an in-cluster phone book (<span class="inline-code">coredns</span>), traffic routing (<span class="inline-code">kube-proxy</span>), and disk storage (<span class="inline-code">aws-ebs-csi-driver</span>). EKS can install and update these for you. <button class="info-pill" data-modal="m-addons">ⓘ Add-ons</button></li>
+      <li style="margin-bottom:0.6rem;"><strong>IRSA</strong> (IAM Roles for Service Accounts) — a way to give <em>one specific app</em> permission to use <em>one specific</em> AWS thing, instead of handing out master keys. This is the safe, grown-up way to do permissions, and it's essential when many teams share one cluster. <button class="info-pill" data-modal="m-irsa">ⓘ IRSA</button></li>
+      <li style="margin-bottom:0.6rem;"><strong>Access entries</strong> — the modern way to say "this person/role is allowed to control the cluster." It replaced an older, fiddlier method called the <span class="inline-code">aws-auth</span> ConfigMap. <button class="info-pill" data-modal="m-access">ⓘ Access entries</button></li>
+    </ul>
+
+    <div class="callout callout-tip">
+      <span class="callout-title">💡 One-sentence summary</span>
+      <strong>Kubernetes</strong> is a robot that runs your apps across many computers; <strong>EKS</strong> is Amazon doing the hardest, most dangerous part of running that robot for you.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 2. WHAT IS TERRAFORM -->
+  <!-- ============================================================ -->
+  <section style="margin-bottom:3rem;">
+    <div class="eyebrow">Section 2</div>
+    <h2 id="what-is-terraform">What is Terraform?</h2>
+
+    <p>Now you can ask Amazon for a cluster. But <em>how</em> do you ask? You could log into the Amazon
+    website and click buttons — choose a region, click "create VPC," click "create cluster," and so on.
+    That works once. But it has big problems:</p>
+
+    <ul style="padding-left:1.25rem;">
+      <li style="margin-bottom:0.5rem;">You'll forget exactly which buttons you clicked. Next month, can you rebuild it identically? Probably not.</li>
+      <li style="margin-bottom:0.5rem;">A teammate can't see what you did or review it before it happens.</li>
+      <li style="margin-bottom:0.5rem;">If you need the same setup in a second region, you click everything all over again — and make mistakes.</li>
+    </ul>
+
+    <p><strong>Terraform</strong> fixes this with an idea called <strong>Infrastructure as Code</strong>, usually
+    shortened to <strong>IaC</strong>. Instead of clicking buttons, you <em>write down</em> what you want in
+    text files. Things like: "I want a network. Inside it, I want a Kubernetes cluster. Attached to it, I want
+    3 worker computers." You save those files, and Terraform reads them and builds <em>exactly</em> that in
+    Amazon for you. <button class="info-pill" data-modal="m-terraform">ⓘ Terraform official site</button></p>
+
+    <p>The magic part: Terraform remembers what it built. If you later change the file to say "5 worker computers
+    instead of 3," Terraform compares what you <em>want</em> against what already <em>exists</em>, figures out
+    the difference, and makes only that one change. You describe the destination; Terraform figures out the
+    driving directions.</p>
+
+    <div class="diagram">
+      <div class="eyebrow" style="margin-bottom:0.75rem;">How Terraform thinks</div>
+      <div class="ascii">  YOUR FILES                  TERRAFORM                  AMAZON CLOUD
+  (what you want)                                       (what exists)
+
+  "3 worker nodes"  ───▶   compares want vs. have   ───▶   currently: 0 nodes
+                                    │
+                                    ▼
+                          "I need to CREATE 3"
+                                    │
+                                    ▼
+                          makes the API calls    ───────▶  now: 3 nodes ✓</div>
+    </div>
+
+    <h3 id="tf-vocab">The 5 Terraform words you need</h3>
+    <table class="doc-table">
+      <thead><tr><th>Word</th><th>Plain meaning</th><th>Learn more</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Resource</strong></td><td>One single thing you want built (one bucket, one cluster, one network).</td><td><button class="info-pill" data-modal="m-resource">ⓘ</button></td></tr>
+        <tr><td><strong>Module</strong></td><td>A reusable bundle of many resources someone already figured out, so you don't reinvent it. We use Amazon's official ones.</td><td><button class="info-pill" data-modal="m-module">ⓘ</button></td></tr>
+        <tr><td><strong>Provider</strong></td><td>A plugin that teaches Terraform how to talk to a specific service (the <span class="inline-code">aws</span> provider, the <span class="inline-code">kubernetes</span> provider).</td><td><button class="info-pill" data-modal="m-provider">ⓘ</button></td></tr>
+        <tr><td><strong>State</strong></td><td>Terraform's memory file. It records everything Terraform has built. <strong>Protect this file</strong> — it's the source of truth.</td><td><button class="info-pill" data-modal="m-state">ⓘ</button></td></tr>
+        <tr><td><strong>Plan / Apply</strong></td><td><em>Plan</em> = a preview ("here's what I'm about to change"). <em>Apply</em> = actually do it. Always read the plan first.</td><td><button class="info-pill" data-modal="m-plan">ⓘ</button></td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-tip">
+      <span class="callout-title">💡 One-sentence summary</span>
+      <strong>Terraform</strong> turns "click buttons in the cloud" into "write a text file and save it" — so your whole setup is written down, repeatable, and reviewable.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 3. WHY A PIPELINE -->
+  <!-- ============================================================ -->
+  <section style="margin-bottom:3rem;">
+    <div class="eyebrow">Section 3</div>
+    <h2 id="why-pipeline">Why run Terraform in a pipeline (GitHub Actions)?</h2>
+
+    <p>You <em>could</em> run Terraform from your own laptop. Lots of people start that way. But on a real team,
+    that gets dangerous fast: two people run it at once and corrupt the memory file; someone applies a change
+    nobody reviewed; the "official" version of your infrastructure lives on one person's computer.</p>
+
+    <p>A <strong>pipeline</strong> is an automated assistant that runs your commands for you, the same way every
+    time, on a shared server in the cloud. <strong>GitHub Actions</strong> is the pipeline built into GitHub
+    (where your code lives). <button class="info-pill" data-modal="m-gha">ⓘ GitHub Actions</button></p>
+
+    <p>Here's the workflow it gives you, which mirrors how software teams already review code:</p>
+
+    <div class="diagram">
+      <div class="ascii">  You change a file
+        │
+        ▼
+  Open a "Pull Request"  ──▶  Pipeline runs `terraform plan`
+   (a proposal to merge)        and posts the preview as a comment
+        │                              │
+        │                              ▼
+        │                    A human reads the preview and
+        │                    approves — BEFORE anything changes
+        ▼
+  Merge to the main branch  ──▶  Pipeline runs `terraform apply`
+                                  (optionally waits for a final OK)
+                                        │
+                                        ▼
+                                  Change is live in AWS ✓</div>
+    </div>
+
+    <p>Why this is so much better:</p>
+    <ul style="padding-left:1.25rem;">
+      <li style="margin-bottom:0.5rem;"><strong>Review before reality.</strong> Every change is previewed and approved before it touches the cloud.</li>
+      <li style="margin-bottom:0.5rem;"><strong>One source of truth.</strong> Whatever is in your <span class="inline-code">main</span> branch is exactly what's deployed. No mystery.</li>
+      <li style="margin-bottom:0.5rem;"><strong>No stored passwords.</strong> The pipeline logs into AWS using a temporary, auto-expiring pass called <strong>OIDC</strong> — there are no long-lived AWS keys sitting in GitHub to be stolen. <button class="info-pill" data-modal="m-oidc">ⓘ OIDC explained</button></li>
+      <li style="margin-bottom:0.5rem;"><strong>No collisions.</strong> A lock (using a small Amazon database) stops two runs from happening at the same time. <button class="info-pill" data-modal="m-locking">ⓘ State locking</button></li>
+      <li style="margin-bottom:0.5rem;"><strong>A paper trail.</strong> Git history shows who changed what and when, forever.</li>
+    </ul>
+
+    <div class="callout callout-tip">
+      <span class="callout-title">💡 One-sentence summary</span>
+      A <strong>pipeline</strong> makes infrastructure changes safe and boring: propose → preview → review → apply, all automatically and on the record.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 4. REPO STRUCTURE -->
+  <!-- ============================================================ -->
+  <section style="margin-bottom:3rem;">
+    <div class="eyebrow">Section 4</div>
+    <h2 id="repo-structure">How to structure your GitHub repository</h2>
+
+    <p>A <strong>repository</strong> (or "repo") is just the folder that holds all your project's files in
+    GitHub. How you arrange the folders inside it matters a lot. Here's the layout this guide uses, and below
+    it, <em>why</em> it looks this way.</p>
+
+    <div class="code-block"><span class="cmt"># Your repository, folder by folder</span>
+.
+├── .github/
+│   └── workflows/
+│       ├── cluster.yml          <span class="cmt"># Pipeline: preview on proposal, build on merge</span>
+│       └── lint.yml             <span class="cmt"># Pipeline: safety + security checks on every proposal</span>
+├── terraform/
+│   ├── bootstrap/               <span class="cmt"># Run ONCE: creates the "memory file" storage</span>
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   ├── outputs.tf
+│   │   └── terraform.tfvars.example
+│   ├── cluster/                 <span class="cmt"># ★ THE CLUSTER — what this guide focuses on</span>
+│   │   ├── backend.tf           <span class="cmt"># Where the memory file is kept</span>
+│   │   ├── providers.tf         <span class="cmt"># Which clouds/tools Terraform talks to</span>
+│   │   ├── variables.tf         <span class="cmt"># All the knobs you can turn</span>
+│   │   ├── vpc.tf               <span class="cmt"># The private network</span>
+│   │   ├── eks.tf               <span class="cmt"># The cluster brain + worker nodes + add-ons</span>
+│   │   ├── outputs.tf           <span class="cmt"># Facts other folders will need later</span>
+│   │   └── terraform.tfvars.example
+│   ├── node-groups/             <span class="cmt"># FUTURE: extra worker computers (empty for now)</span>
+│   │   └── README.md
+│   └── tenants/                 <span class="cmt"># FUTURE: per-team isolation (empty for now)</span>
+│       └── README.md
+├── .gitignore                   <span class="cmt"># Files Git should never save (secrets, memory files)</span>
+├── .tflint.hcl                  <span class="cmt"># Rules for the code-checker</span>
+└── README.md                    <span class="cmt"># The short version of this page</span></div>
+
+    <h3 id="why-separate">Why are <code>cluster</code>, <code>node-groups</code>, and <code>tenants</code> separate folders?</h3>
+
+    <p>This is the single most important decision in the whole setup, so here's the reasoning slowly.</p>
+
+    <p>Each of those folders is its <em>own independent Terraform project</em> with its <em>own separate memory
+    file</em>. Picture three separate notebooks instead of one shared notebook. Because they're separate:</p>
+
+    <ul style="padding-left:1.25rem;">
+      <li style="margin-bottom:0.5rem;">A risky change to one team's setup (in <span class="inline-code">tenants/</span>) <strong>physically cannot</strong> accidentally damage the cluster's brain (in <span class="inline-code">cluster/</span>) — they don't share a memory file.</li>
+      <li style="margin-bottom:0.5rem;">The pipeline only runs the folder that actually changed. Edit a worker pool? Only the node-group pipeline runs. The cluster is left untouched.</li>
+      <li style="margin-bottom:0.5rem;">Different people can own different folders, with different approval rules.</li>
+    </ul>
+
+    <p>This idea — keeping the dangerous, rarely-changed "foundation" apart from the frequently-changed
+    "stuff on top" — is a core best practice. The official AWS guidance on Terraform structure says the same
+    thing. <button class="info-pill" data-modal="m-awsstruct">ⓘ AWS structure guidance</button></p>
+
+    <div class="callout callout-note">
+      <span class="callout-title">🔮 About the empty folders</span>
+      <span class="inline-code">node-groups/</span> and <span class="inline-code">tenants/</span> start as
+      placeholders with just a README inside. That's on purpose — this guide builds the
+      <strong>cluster foundation only</strong>. Section 11 shows exactly how those folders get filled in later
+      without ever touching the cluster.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 5. ARCHITECTURE -->
+  <!-- ============================================================ -->
+  <section style="margin-bottom:3rem;">
+    <div class="eyebrow">Section 5</div>
+    <h2 id="architecture">What actually gets built</h2>
+
+    <p>When the pipeline runs the <span class="inline-code">cluster/</span> folder, here's the picture it
+    creates inside your AWS account. Don't worry about every box yet — we'll explain each file that makes
+    these in Section 8.</p>
+
+    <div class="diagram">
+      <div class="eyebrow" style="margin-bottom:0.75rem;">Your cluster, top to bottom</div>
+      <div class="ascii">┌─────────────────────────────────────────────────────────────────┐
+│  VPC  — your own private network in AWS, spanning 3 data centers   │
+│        (these data centers are called "Availability Zones")        │
+│                                                                     │
+│  ┌─────────────── PUBLIC subnets (one per zone) ───────────────┐   │
+│  │  Internet-facing doors. Load balancers live here.            │   │
+│  │  A "NAT Gateway" sits here so private nodes can reach OUT     │   │
+│  │  to the internet — but the internet can't reach IN to them.  │   │
+│  └──────────────────────────────────────────────────────────────┘ │
+│                                                                     │
+│  ┌─────────────── PRIVATE subnets (one per zone) ──────────────┐   │
+│  │   EKS Control Plane (the brain) — managed by Amazon          │   │
+│  │                                                               │   │
+│  │   "system" node group — a couple of small worker computers,   │   │
+│  │   reserved (via a "taint") for core add-ons only.            │   │
+│  │                                                               │   │
+│  │   Add-ons running here: vpc-cni · coredns · kube-proxy ·      │   │
+│  │                         aws-ebs-csi-driver                    │   │
+│  └──────────────────────────────────────────────────────────────┘ │
+│                                                                     │
+│  Plus: an OIDC provider (enables IRSA / safe per-app permissions)   │
+│        and access entries (who is allowed to control the cluster)   │
+└─────────────────────────────────────────────────────────────────┘</div>
+    </div>
+
+    <p>Separately, the <strong>bootstrap</strong> folder (which you run just once at the very start) creates
+    two small things that store Terraform's memory file safely: an <strong>S3 bucket</strong> (cloud file
+    storage, with version history and encryption turned on) and a <strong>DynamoDB table</strong> (a tiny
+    database used only as a lock so two runs can't collide).
+    <button class="info-pill" data-modal="m-s3backend">ⓘ Why store state remotely?</button></p>
+
+    <div class="callout callout-warn">
+      <span class="callout-title">🪧 Why only ONE small "system" node group?</span>
+      The cluster ships with just enough worker computers to run the core add-ons, and those nodes are
+      <strong>"tainted"</strong> — marked as off-limits to normal apps. Real application capacity and
+      per-team capacity are added later in the <span class="inline-code">node-groups/</span> and
+      <span class="inline-code">tenants/</span> folders. This keeps the foundation tiny, cheap, and stable.
+      <button class="info-pill" data-modal="m-taints">ⓘ What are taints &amp; tolerations?</button>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 6. PREREQUISITES -->
+  <!-- ============================================================ -->
+  <section style="margin-bottom:3rem;">
+    <div class="eyebrow">Section 6</div>
+    <h2 id="prereqs">What you need before you start</h2>
+
+    <p>Gather these first. Each links to where you get it.</p>
+
+    <table class="doc-table">
+      <thead><tr><th>You need</th><th>What it's for</th><th>Get it</th></tr></thead>
+      <tbody>
+        <tr><td><strong>An AWS account</strong></td><td>The cloud where everything is built. You'll need permission to create networks, clusters, and permissions.</td><td><a class="ext-link" href="https://aws.amazon.com/free/" target="_blank" rel="noopener">aws.amazon.com</a></td></tr>
+        <tr><td><strong>The AWS CLI</strong></td><td>A command-line tool to talk to AWS from your computer (needed for the one-time bootstrap and for cluster access).</td><td><a class="ext-link" href="https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html" target="_blank" rel="noopener">Install guide</a></td></tr>
+        <tr><td><strong>Terraform</strong> (v1.9+)</td><td>The tool that reads your files and builds the cloud.</td><td><a class="ext-link" href="https://developer.hashicorp.com/terraform/install" target="_blank" rel="noopener">Install guide</a></td></tr>
+        <tr><td><strong>kubectl</strong></td><td>The command-line tool for talking to your Kubernetes cluster once it exists.</td><td><a class="ext-link" href="https://kubernetes.io/docs/tasks/tools/" target="_blank" rel="noopener">Install guide</a></td></tr>
+        <tr><td><strong>A GitHub repo</strong></td><td>Where your code lives and where the pipeline runs.</td><td><a class="ext-link" href="https://github.com/new" target="_blank" rel="noopener">Create one</a></td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-note">
+      <span class="callout-title">Good news for day-to-day work</span>
+      You only really need Terraform and the AWS CLI on your laptop for the <strong>one-time</strong> setup
+      below. After that, all changes go through the pipeline — you mostly just edit files and open pull requests.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 7. STEP-BY-STEP SETUP -->
+  <!-- ============================================================ -->
+  <section style="margin-bottom:3rem;">
+    <div class="eyebrow">Section 7 · The main event</div>
+    <h2 id="setup">Step-by-step setup</h2>
+    <p>Follow these in order. Each step says <em>what</em> you do and <em>why</em> it matters.</p>
+
+    <!-- STEP 1 -->
+    <div style="display:flex;gap:1rem;margin:2rem 0 1rem;align-items:flex-start;">
+      <span class="step-num">1</span>
+      <div style="flex:1;min-width:0;">
+        <h3 id="step1" style="margin-top:0;">Create the "memory file" storage (bootstrap)</h3>
+        <p>Remember Terraform's memory file (the <strong>state</strong>)? It needs a safe home <em>before</em>
+        the pipeline can use it. There's a classic chicken-and-egg here: you can't store the storage's own
+        state in storage that doesn't exist yet. So this one folder runs from your laptop and keeps its state
+        locally. You run it <strong>once</strong>.</p>
+        <div class="code-block"><span class="kw">cd</span> terraform/bootstrap
+<span class="cmt"># Copy the example settings file, then edit it with your real values</span>
+cp terraform.tfvars.example terraform.tfvars
+
+terraform init      <span class="cmt"># downloads the AWS plugin; uses LOCAL state on purpose</span>
+terraform apply     <span class="cmt"># type "yes" to create the S3 bucket + lock table</span></div>
+        <p>When it finishes, it prints two names — <span class="inline-code">state_bucket_name</span> and
+        <span class="inline-code">lock_table_name</span>. <strong>Write them down.</strong> You'll paste them
+        into GitHub in step 3.</p>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div style="display:flex;gap:1rem;margin:2rem 0 1rem;align-items:flex-start;">
+      <span class="step-num">2</span>
+      <div style="flex:1;min-width:0;">
+        <h3 id="step2" style="margin-top:0;">Let GitHub log into AWS safely (OIDC)</h3>
+        <p>The pipeline needs permission to build things in AWS — but we refuse to store a permanent AWS
+        password in GitHub. Instead we set up <strong>OIDC</strong>: a trust handshake where GitHub proves
+        who it is and AWS hands back a temporary pass that expires in minutes.
+        <button class="info-pill" data-modal="m-oidc">ⓘ How OIDC works</button></p>
+        <p>In AWS, you create an <strong>IAM OIDC identity provider</strong> for GitHub, then an
+        <strong>IAM role</strong> that trusts <em>only</em> your repository. The trust rule looks like this:</p>
+        <div class="code-block"><span class="cmt">// IAM role "trust policy" — who is allowed to assume this role</span>
+{
+  <span class="str">"Version"</span>: <span class="str">"2012-10-17"</span>,
+  <span class="str">"Statement"</span>: [{
+    <span class="str">"Effect"</span>: <span class="str">"Allow"</span>,
+    <span class="str">"Principal"</span>: { <span class="str">"Federated"</span>: <span class="str">"arn:aws:iam::&lt;ACCOUNT_ID&gt;:oidc-provider/token.actions.githubusercontent.com"</span> },
+    <span class="str">"Action"</span>: <span class="str">"sts:AssumeRoleWithWebIdentity"</span>,
+    <span class="str">"Condition"</span>: {
+      <span class="str">"StringEquals"</span>: { <span class="str">"token.actions.githubusercontent.com:aud"</span>: <span class="str">"sts.amazonaws.com"</span> },
+      <span class="cmt">// This line is the lock: only THIS repo can use the role</span>
+      <span class="str">"StringLike"</span>: { <span class="str">"token.actions.githubusercontent.com:sub"</span>: <span class="str">"repo:&lt;ORG&gt;/&lt;REPO&gt;:*"</span> }
+    }
+  }]
+}</div>
+        <p>Then attach a <strong>permissions policy</strong> to that role allowing the AWS actions Terraform
+        needs (EKS, VPC, IAM, S3, DynamoDB). Start a little broad to get going, then tighten over time toward
+        "least privilege" — only what's actually used.
+        <button class="info-pill" data-modal="m-oidcsetup">ⓘ AWS's official OIDC setup steps</button></p>
+        <div class="callout callout-warn">
+          <span class="callout-title">⚠️ Keep the lock tight</span>
+          The <span class="inline-code">:sub</span> condition controls which repo (and optionally which branch)
+          may borrow this role. Keep it as specific as you can — this is your main security boundary.
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div style="display:flex;gap:1rem;margin:2rem 0 1rem;align-items:flex-start;">
+      <span class="step-num">3</span>
+      <div style="flex:1;min-width:0;">
+        <h3 id="step3" style="margin-top:0;">Tell GitHub your settings (repository variables)</h3>
+        <p>In your GitHub repo, go to <strong>Settings → Secrets and variables → Actions → Variables</strong>
+        and add these. They're not secret (no passwords here), so plain "Variables" is correct.
+        <button class="info-pill" data-modal="m-ghvars">ⓘ GitHub variables docs</button></p>
+        <table class="doc-table">
+          <thead><tr><th>Variable name</th><th>Example value</th></tr></thead>
+          <tbody>
+            <tr><td><code>AWS_ROLE_ARN</code></td><td>arn:aws:iam::123456789012:role/gha-eks</td></tr>
+            <tr><td><code>AWS_REGION</code></td><td>us-east-1</td></tr>
+            <tr><td><code>TF_STATE_BUCKET</code></td><td>eks-platform-tfstate-123456789012</td></tr>
+            <tr><td><code>TF_LOCK_TABLE</code></td><td>eks-platform-tflock</td></tr>
+            <tr><td><code>PROJECT_NAME</code></td><td>eks-platform</td></tr>
+            <tr><td><code>ENVIRONMENT</code></td><td>dev</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div style="display:flex;gap:1rem;margin:2rem 0 1rem;align-items:flex-start;">
+      <span class="step-num">4</span>
+      <div style="flex:1;min-width:0;">
+        <h3 id="step4" style="margin-top:0;">Add an approval gate (recommended)</h3>
+        <p>In GitHub, create an <strong>Environment</strong> named <span class="inline-code">production</span>
+        and add yourself as a <strong>required reviewer</strong>. Now, before the pipeline applies any real
+        change, it <em>pauses and waits for you to click approve</em>. This is your seatbelt.
+        <button class="info-pill" data-modal="m-ghenv">ⓘ GitHub Environments</button></p>
+      </div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div style="display:flex;gap:1rem;margin:2rem 0 1rem;align-items:flex-start;">
+      <span class="step-num">5</span>
+      <div style="flex:1;min-width:0;">
+        <h3 id="step5" style="margin-top:0;">Open a pull request and watch it work</h3>
+        <p>Push the code to a branch and open a <strong>pull request</strong> (a proposal to merge your
+        changes). The pipeline springs to life: it checks formatting, sets things up, and runs
+        <span class="inline-code">terraform plan</span>, then posts the full preview as a comment right on
+        your pull request. Read it carefully. When you're happy, <strong>merge to <code>main</code></strong>.
+        The apply job runs (pausing for your approval if you did step 4) and builds the cluster.</p>
+        <p>Finally, point <span class="inline-code">kubectl</span> at your brand-new cluster with the command
+        Terraform printed for you:</p>
+        <div class="code-block">aws eks update-kubeconfig --region us-east-1 --name eks-platform-dev
+kubectl get nodes   <span class="cmt"># you should see your system node(s) listed!</span></div>
+      </div>
+    </div>
+
+    <div class="callout callout-tip">
+      <span class="callout-title">🎉 That's the whole setup</span>
+      Bootstrap once, wire up OIDC + variables once, then it's just pull requests forever after.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 8. TERRAFORM FILES EXPLAINED -->
+  <!-- ============================================================ -->
+  <section style="margin-bottom:3rem;">
+    <div class="eyebrow">Section 8</div>
+    <h2 id="tf-files">The Terraform files, explained</h2>
+    <p>Every <span class="inline-code">.tf</span> file in the project is heavily commented inside. Here's the
+    plain-English tour of what each one does and why.</p>
+
+    <h3 id="bootstrap-files">📁 <code>terraform/bootstrap/</code> — the memory-file storage</h3>
+    <table class="doc-table">
+      <thead><tr><th>File</th><th>What it does, in plain words</th></tr></thead>
+      <tbody>
+        <tr><td><code>main.tf</code></td><td>Creates the <strong>S3 bucket</strong> that holds Terraform's state, with three protections: <em>versioning</em> (keep a history so you can roll back a bad state), <em>encryption</em> (state can contain secrets, so scramble it at rest), and a <em>public-access block</em> (never let it be seen publicly). It also sets <span class="inline-code">prevent_destroy</span> so a careless command can't delete the bucket holding all your memory. Finally it makes the <strong>DynamoDB lock table</strong> so two pipeline runs can't collide.</td></tr>
+        <tr><td><code>variables.tf</code></td><td>The adjustable inputs: region, project name, and your 12-digit account ID. Each has a <em>validation</em> rule that rejects obviously-wrong input before any cloud call is made.</td></tr>
+        <tr><td><code>outputs.tf</code></td><td>Prints the bucket and table names so you can paste them into GitHub.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-note"><span class="callout-title">Why does this folder use local state?</span>It's the chicken-and-egg again: you can't keep the storage's state inside storage that doesn't exist yet. So bootstrap keeps its small state on your laptop. It almost never changes after the first run. <button class="info-pill" data-modal="m-s3backend">ⓘ More</button></div>
+
+    <h3 id="cluster-files">📁 <code>terraform/cluster/</code> — the cluster itself</h3>
+
+    <h4 id="backend-tf"><code>backend.tf</code> — where the memory lives</h4>
+    <p>Tells Terraform to store <em>this</em> folder's state in your S3 bucket at the path
+    <span class="inline-code">cluster/terraform.tfstate</span>, and to lock using your DynamoDB table.
+    Because backend settings can't use variables, the bucket and table names are passed in by the pipeline at
+    "init" time — keeping account-specific details out of the file. It also pins the Terraform version and the
+    plugins it needs (<span class="inline-code">aws</span>, <span class="inline-code">kubernetes</span>,
+    <span class="inline-code">tls</span>). <button class="info-pill" data-modal="m-s3backend">ⓘ S3 backend docs</button></p>
+
+    <h4 id="providers-tf"><code>providers.tf</code> — who Terraform talks to</h4>
+    <p>Sets up the <strong>AWS provider</strong> (with your region and a set of tags stamped onto every
+    resource so you can track cost and ownership). It also sets up the <strong>Kubernetes provider</strong>,
+    which authenticates using a short-lived token from <span class="inline-code">aws eks get-token</span> —
+    so no cluster password is ever written to disk. <button class="info-pill" data-modal="m-provider">ⓘ Providers</button></p>
+
+    <h4 id="variables-tf"><code>variables.tf</code> — all the knobs</h4>
+    <p>Every setting you might change: region, Kubernetes version, network size, how many availability zones,
+    the baseline node group's size and machine type, who gets admin, and whether the cluster's control door is
+    open to the public internet (and from which addresses). Several knobs have validation rules.</p>
+
+    <h4 id="vpc-tf"><code>vpc.tf</code> — the private network</h4>
+    <p>Uses Amazon's official <strong>VPC module</strong> to build the network: public and private subnets
+    spread across availability zones, a NAT gateway so private nodes can reach out to the internet, and —
+    critically — special <strong>tags</strong> on the subnets that EKS and load balancers require to find the
+    right place to put things. The function <span class="inline-code">cidrsubnet()</span> automatically slices
+    your big network range into neat per-zone pieces, so you don't do the math by hand.
+    <button class="info-pill" data-modal="m-vpcmod">ⓘ VPC module</button>
+    <button class="info-pill" data-modal="m-subnettags">ⓘ Why the subnet tags?</button></p>
+
+    <h4 id="eks-tf"><code>eks.tf</code> — the heart of everything</h4>
+    <p>Uses Amazon's official <strong>EKS module</strong> — the community standard maintained by experts — to
+    create, in one place:</p>
+    <ul style="padding-left:1.25rem;">
+      <li style="margin-bottom:0.4rem;">the <strong>control plane</strong> (the brain) at your chosen Kubernetes version, with the public door optionally open and restricted to specific addresses;</li>
+      <li style="margin-bottom:0.4rem;"><strong>IRSA</strong> turned on (the OIDC provider), so individual apps can get narrow, safe permissions;</li>
+      <li style="margin-bottom:0.4rem;">the four core <strong>add-ons</strong>, with pod-networking installed <em>before</em> nodes join so networking is ready instantly, and the storage driver wired to its own narrow IRSA permission;</li>
+      <li style="margin-bottom:0.4rem;">the single <strong>"system" node group</strong>, labeled and <strong>tainted</strong> so only core components run there;</li>
+      <li style="margin-bottom:0.4rem;"><strong>access entries</strong> granting admin to the pipeline (and anyone you list).</li>
+    </ul>
+    <button class="info-pill" data-modal="m-eksmod">ⓘ EKS module docs</button>
+    <button class="info-pill" data-modal="m-eksmod-v21">⚠️ Important version note</button>
+
+    <h4 id="outputs-tf"><code>outputs.tf</code> — facts for later folders</h4>
+    <p>This is the <strong>contract</strong> the future <span class="inline-code">node-groups/</span> and
+    <span class="inline-code">tenants/</span> folders read. It publishes the cluster name, its address, the
+    network ID, the private subnet IDs, the node security group, and the all-important
+    <strong>OIDC provider ARN</strong>. Future folders read these automatically (via a
+    <span class="inline-code">terraform_remote_state</span> lookup) instead of hardcoding anything. It also
+    prints the ready-to-run <span class="inline-code">kubectl</span> setup command.
+    <button class="info-pill" data-modal="m-remotestate">ⓘ How folders share facts</button></p>
+
+    <div class="callout callout-tip">
+      <span class="callout-title">💡 Why use Amazon's official modules instead of writing it all yourself?</span>
+      Setting up EKS correctly involves hundreds of small, easy-to-get-wrong details (IAM roles, security
+      groups, the OIDC provider, add-on wiring). The official modules encode all of that, are battle-tested,
+      and are kept up to date by the community. You get best practices for free.
+      <button class="info-pill" data-modal="m-whymodules">ⓘ More</button>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 9. PIPELINE FILES -->
+  <!-- ============================================================ -->
+  <section style="margin-bottom:3rem;">
+    <div class="eyebrow">Section 9</div>
+    <h2 id="pipeline-files">The GitHub Actions pipeline, explained</h2>
+
+    <h3 id="cluster-yml"><code>.github/workflows/cluster.yml</code> — preview &amp; build</h3>
+    <p>This is the main pipeline for the cluster. Reading it top to bottom in plain words:</p>
+
+    <table class="doc-table">
+      <thead><tr><th>Part of the file</th><th>What it means</th></tr></thead>
+      <tbody>
+        <tr><td><code>on:</code></td><td><strong>When does this run?</strong> On pull requests that touch the cluster folder (preview only), on merges to <span class="inline-code">main</span> that touch it (build), and via a manual "Run" button. A path filter means unrelated edits don't needlessly run Terraform.</td></tr>
+        <tr><td><code>permissions:</code></td><td><strong>What can the run do?</strong> Exactly three things: request an OIDC token (required to log into AWS), read the repo, and write comments on pull requests.</td></tr>
+        <tr><td><code>concurrency:</code></td><td><strong>No collisions.</strong> Runs on the same branch are queued, and an in-progress build is never cut off halfway.</td></tr>
+        <tr><td><code>env:</code></td><td><strong>Settings.</strong> Pulls your non-secret values (region, state bucket, lock table) from the repository variables, so the file has no account details baked in.</td></tr>
+        <tr><td><code>environment:</code></td><td><strong>The approval gate.</strong> On <span class="inline-code">main</span>, ties the run to the <span class="inline-code">production</span> environment so it waits for your approval.</td></tr>
+      </tbody>
+    </table>
+
+    <p>Then the <strong>steps</strong>, in order — this is the actual recipe:</p>
+    <div class="code-block"><span class="num">1</span>  Checkout            <span class="cmt"># copy the repo onto the runner machine</span>
+<span class="num">2</span>  Configure AWS (OIDC) <span class="cmt"># trade the OIDC token for temporary AWS credentials</span>
+<span class="num">3</span>  Setup Terraform     <span class="cmt"># install the exact pinned Terraform version</span>
+<span class="num">4</span>  Format Check        <span class="cmt"># fail if the code isn't tidily formatted</span>
+<span class="num">5</span>  Init                <span class="cmt"># connect to the S3 backend (bucket/table passed in here)</span>
+<span class="num">6</span>  Validate            <span class="cmt"># check the config makes internal sense</span>
+<span class="num">7</span>  Plan                <span class="cmt"># build the preview; save it to a file</span>
+<span class="num">8</span>  Comment on PR       <span class="cmt"># post that preview onto the pull request</span>
+<span class="num">9</span>  Fail if plan errored <span class="cmt"># stop on a real error (but "has changes" is fine)</span>
+<span class="num">10</span> Apply               <span class="cmt"># ONLY on main: apply the EXACT preview you reviewed</span></div>
+
+    <div class="callout callout-note">
+      <span class="callout-title">Why save the plan to a file and apply <em>that</em> exact file?</span>
+      It guarantees that what a human reviewed is precisely what gets built — nothing can sneak in between
+      the preview and the build.
+    </div>
+
+    <h3 id="lint-yml"><code>.github/workflows/lint.yml</code> — safety &amp; security checks</h3>
+    <p>This second pipeline runs on every pull request that touches any Terraform, acting as guardrails
+    <em>before</em> the main pipeline even runs:</p>
+    <ul style="padding-left:1.25rem;">
+      <li style="margin-bottom:0.5rem;"><strong>TFLint</strong> — catches mistakes like deprecated machine types or broken references, and enforces a consistent style. <button class="info-pill" data-modal="m-tflint">ⓘ TFLint</button></li>
+      <li style="margin-bottom:0.5rem;"><strong>Trivy</strong> — scans your infrastructure code for security problems (like an accidentally wide-open firewall) and fails the pull request on serious findings. While you fix the first batch, you can set it to "advisory" so it warns without blocking. <button class="info-pill" data-modal="m-trivy">ⓘ Trivy</button></li>
+    </ul>
+
+    <div class="callout callout-tip">
+      <span class="callout-title">💡 The big picture</span>
+      Two pipelines, working together: <strong>lint.yml</strong> says "is this code safe and clean?" and
+      <strong>cluster.yml</strong> says "preview the change, let a human approve, then build it."
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 10. MAKING CHANGES -->
+  <!-- ============================================================ -->
+  <section style="margin-bottom:3rem;">
+    <div class="eyebrow">Section 10</div>
+    <h2 id="changes">How to make changes safely (day-to-day)</h2>
+
+    <p><strong>The golden rule: never run <code>terraform apply</code> from your laptop against the shared
+    cluster.</strong> Let the pipeline do it. Here's the everyday routine:</p>
+
+    <div class="code-block"><span class="num">1.</span> Make a branch      <span class="cmt"># git checkout -b change/bigger-node-pool</span>
+<span class="num">2.</span> Edit a .tf file    <span class="cmt"># then run: terraform fmt -recursive (tidies formatting)</span>
+<span class="num">3.</span> Open a pull request <span class="cmt"># pipeline previews the change + posts it as a comment</span>
+<span class="num">4.</span> READ the preview    <span class="cmt"># confirm it's ONLY what you intended</span>
+<span class="num">5.</span> Merge to main      <span class="cmt"># pipeline builds it (waits for your approval if set up)</span>
+<span class="num">6.</span> Verify             <span class="cmt"># check the Actions log; kubectl get nodes</span></div>
+
+    <h3 id="reading-plans">How to read a plan (this matters)</h3>
+    <p>The preview uses symbols. Learn these four — they're the difference between a safe change and an outage:</p>
+    <table class="doc-table">
+      <thead><tr><th>Symbol</th><th>Means</th><th>Worry level</th></tr></thead>
+      <tbody>
+        <tr><td><code style="color:var(--ibm-green);">+ create</code></td><td>Something new will be added.</td><td>Usually safe</td></tr>
+        <tr><td><code style="color:var(--ibm-cyan);">~ update</code></td><td>Something existing will be changed in place.</td><td>Usually safe</td></tr>
+        <tr><td><code style="color:var(--ibm-red);">-/+ replace</code></td><td>Something will be <strong>destroyed and rebuilt</strong>. Can cause downtime or data loss.</td><td>⚠️ Read carefully</td></tr>
+        <tr><td><code style="color:var(--ibm-red);">- destroy</code></td><td>Something will be <strong>deleted</strong>.</td><td>⚠️ Read carefully</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-danger">
+      <span class="callout-title">🚨 Always pause on red</span>
+      If you see <span class="inline-code">replace</span> or <span class="inline-code">destroy</span> on
+      anything important (the cluster, a database, storage), stop and make sure that's truly what you want
+      <em>before</em> merging. Reverting code can't always undo deleted data.
+    </div>
+
+    <h3 id="drift-upgrades">Drift, upgrades, and rollbacks</h3>
+    <ul style="padding-left:1.25rem;">
+      <li style="margin-bottom:0.5rem;"><strong>Drift</strong> (someone changed things by hand in the AWS console): the next preview will show the difference. Either undo the manual change or write it into your files, then apply so reality and your files match again.</li>
+      <li style="margin-bottom:0.5rem;"><strong>Upgrading Kubernetes:</strong> bump the version number by <strong>one step at a time</strong> (e.g. <span class="inline-code">1.33 → 1.34</span>), open a pull request, review, merge. Skipping versions is not allowed. <button class="info-pill" data-modal="m-upgrade">ⓘ Upgrade guide</button></li>
+      <li style="margin-bottom:0.5rem;"><strong>Rolling back:</strong> revert the commit that caused the problem and merge — the pipeline applies the previous good state. (But remember: deleted data may not come back.)</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 11. EXTENDING -->
+  <!-- ============================================================ -->
+  <section style="margin-bottom:3rem;">
+    <div class="eyebrow">Section 11 · The future folders</div>
+    <h2 id="extending">Adding node groups &amp; multi-tenant projects</h2>
+    <p>These are designed to be <strong>additive</strong> — you never edit the <code>cluster/</code> folder to
+    add capacity or teams. Here's how each future folder gets filled in.</p>
+
+    <h3 id="adding-nodegroups">📁 Adding more worker computers (<code>node-groups/</code>)</h3>
+    <p>Say you need beefier machines for a heavy app, or GPU machines for AI work. You add a new node group in
+    its own folder, which reads the cluster's published facts and attaches new workers to the existing cluster.</p>
+    <p>Step one: read the cluster's outputs using a <strong>remote state lookup</strong> (this is how separate
+    folders share facts safely):</p>
+    <div class="code-block"><span class="kw">data</span> <span class="str">"terraform_remote_state"</span> <span class="str">"cluster"</span> {
+  backend = <span class="str">"s3"</span>
+  config = {
+    bucket = <span class="str">"eks-platform-tfstate-123456789012"</span>
+    key    = <span class="str">"cluster/terraform.tfstate"</span>   <span class="cmt"># reads the cluster's memory file</span>
+    region = <span class="str">"us-east-1"</span>
+  }
+}</div>
+    <p>Step two: describe your node groups as <strong>data, not copy-pasted code</strong> — a simple list you
+    loop over. Adding a new pool becomes a few lines:</p>
+    <div class="code-block"><span class="kw">locals</span> {
+  node_groups = {
+    general = { instance_types = [<span class="str">"m5.large"</span>],  min = <span class="num">2</span>, max = <span class="num">6</span> }
+    memory  = { instance_types = [<span class="str">"r5.xlarge"</span>], min = <span class="num">0</span>, max = <span class="num">4</span> }
+    gpu     = { instance_types = [<span class="str">"g4dn.xlarge"</span>], min = <span class="num">0</span>, max = <span class="num">2</span> }  <span class="cmt"># ← new pool = one line</span>
+  }
+}</div>
+    <p>Each pool attaches to the cluster using the looked-up facts (cluster name, private subnets, node security
+    group). Then copy <span class="inline-code">cluster.yml</span> to a <span class="inline-code">node-groups.yml</span>
+    pipeline (change the folder and the state key) so this folder gets its own preview/build pipeline.
+    <button class="info-pill" data-modal="m-mng">ⓘ Managed node group reference</button></p>
+
+    <h3 id="adding-tenants">📁 Adding multi-tenant teams (<code>tenants/</code>)</h3>
+    <p><strong>Multi-tenancy</strong> means many independent teams (or customers, or projects) safely sharing
+    one cluster without stepping on each other. <button class="info-pill" data-modal="m-multitenant">ⓘ EKS multi-tenancy</button>
+    You build one reusable "tenant" recipe that, for each team, creates layered isolation:</p>
+    <table class="doc-table">
+      <thead><tr><th>Layer</th><th>What it protects</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Namespace</strong></td><td>A labeled area of the cluster — the basic boundary between teams. <button class="info-pill" data-modal="m-namespace">ⓘ</button></td></tr>
+        <tr><td><strong>ResourceQuota + LimitRange</strong></td><td>Caps how much CPU and memory a team can use, so one team can't starve the others. <button class="info-pill" data-modal="m-quota">ⓘ</button></td></tr>
+        <tr><td><strong>NetworkPolicy</strong></td><td>A firewall between teams — by default, one team's apps can't reach another's. <button class="info-pill" data-modal="m-netpol">ⓘ</button></td></tr>
+        <tr><td><strong>RBAC Role/RoleBinding</strong></td><td>Limits each team's people to only their own area. <button class="info-pill" data-modal="m-rbac">ⓘ</button></td></tr>
+        <tr><td><strong>Dedicated node group (optional)</strong></td><td>Gives a team its own physical worker computers for hard isolation.</td></tr>
+        <tr><td><strong>IRSA role per team</strong></td><td>Scoped AWS permissions for that team's apps, trusting the cluster's OIDC provider.</td></tr>
+      </tbody>
+    </table>
+    <p>With that recipe (a Terraform <strong>module</strong>) built once, onboarding a new team is a single
+    block:</p>
+    <div class="code-block"><span class="kw">module</span> <span class="str">"tenant_acme"</span> {
+  source            = <span class="str">"../modules/tenant"</span>
+  tenant_name       = <span class="str">"acme"</span>
+  cpu_quota         = <span class="str">"20"</span>
+  memory_quota      = <span class="str">"40Gi"</span>
+  oidc_provider_arn = data.terraform_remote_state.cluster.outputs.oidc_provider_arn
+}
+
+<span class="kw">module</span> <span class="str">"tenant_globex"</span> {       <span class="cmt"># a second team = another small block</span>
+  source            = <span class="str">"../modules/tenant"</span>
+  tenant_name       = <span class="str">"globex"</span>
+  cpu_quota         = <span class="str">"10"</span>
+  memory_quota      = <span class="str">"20Gi"</span>
+  oidc_provider_arn = data.terraform_remote_state.cluster.outputs.oidc_provider_arn
+}</div>
+    <div class="callout callout-note">
+      <span class="callout-title">Strongest isolation tip</span>
+      For maximum safety, give <em>each team its own memory file</em> (a state key like
+      <span class="inline-code">tenants/acme/terraform.tfstate</span>), so a mistake on one team can't affect
+      another's state.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 12. VERSIONS & COST -->
+  <!-- ============================================================ -->
+  <section style="margin-bottom:3rem;">
+    <div class="eyebrow">Section 12</div>
+    <h2 id="versions">Kubernetes versions &amp; what this costs</h2>
+
+    <h3 id="version-lifecycle">The version clock (don't get caught off guard)</h3>
+    <p>Kubernetes releases a new version roughly every few months, and EKS follows along. Each version has a
+    support window you need to respect:</p>
+    <ul style="padding-left:1.25rem;">
+      <li style="margin-bottom:0.5rem;"><strong>Standard support</strong> lasts about <strong>14 months</strong> from a version's release on EKS.</li>
+      <li style="margin-bottom:0.5rem;">After that, <strong>extended support</strong> runs another <strong>12 months</strong> — but it costs significantly more (see the table).</li>
+      <li style="margin-bottom:0.5rem;">If you never upgrade, EKS will eventually <strong>auto-upgrade you</strong>, which you don't want to be surprised by.</li>
+    </ul>
+    <p>The lesson: <strong>upgrade one minor version at a time, on a schedule, while you're still in standard
+    support.</strong> <button class="info-pill" data-modal="m-versions">ⓘ Official version lifecycle</button></p>
+
+    <div class="callout callout-warn">
+      <span class="callout-title">⏱️ Keep version numbers current</span>
+      Kubernetes versions move fast. Before your first build, check the official page for the newest version
+      in standard support and use that, rather than copying a number from any guide (including this one).
+      <button class="info-pill" data-modal="m-versions">ⓘ Check current versions</button>
+    </div>
+
+    <h3 id="cost">Roughly what does this cost?</h3>
+    <table class="doc-table">
+      <thead><tr><th>What you pay for</th><th>Rough cost</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>EKS control plane (the brain)</td><td>~$0.10 / hour (≈ $73 / month)</td><td>Per cluster, on standard support.</td></tr>
+        <tr><td>EKS control plane on <em>extended</em> support</td><td>~$0.60 / hour (≈ $438 / month)</td><td>6× more — a strong reason to upgrade on time.</td></tr>
+        <tr><td>Worker computers (EC2 nodes)</td><td>Varies by size &amp; count</td><td>This guide uses small <span class="inline-code">t3.medium</span> nodes in dev.</td></tr>
+        <tr><td>NAT gateway</td><td>Hourly + data charges</td><td>Dev uses one (cheaper); prod uses one per zone (highly available).</td></tr>
+        <tr><td>Storage (EBS volumes)</td><td>Per GB</td><td>Only when your apps request persistent disks.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-danger">
+      <span class="callout-title">💸 Turn it off when experimenting</span>
+      An idle cluster still bills every hour. When you're just learning, run a teardown (or
+      <span class="inline-code">terraform destroy</span> on the cluster folder) when you're done — but note the
+      bootstrap bucket is deliberately protected from deletion. Always check the current
+      <a class="ext-link" href="https://aws.amazon.com/eks/pricing/" target="_blank" rel="noopener">EKS pricing page</a>,
+      since prices change.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 13. TROUBLESHOOTING -->
+  <!-- ============================================================ -->
+  <section style="margin-bottom:3rem;">
+    <div class="eyebrow">Section 13</div>
+    <h2 id="troubleshoot">Troubleshooting common problems</h2>
+    <table class="doc-table">
+      <thead><tr><th>Error you see</th><th>What's likely wrong &amp; how to fix it</th></tr></thead>
+      <tbody>
+        <tr><td><code>Error acquiring the state lock</code></td><td>A previous run crashed while holding the lock. Make sure no run is active, then carefully run <span class="inline-code">terraform force-unlock &lt;LOCK_ID&gt;</span>.</td></tr>
+        <tr><td><code>Not authorized to perform sts:AssumeRoleWithWebIdentity</code></td><td>The OIDC setup is off: the role's <span class="inline-code">:sub</span> condition doesn't match your repo/branch, or the identity provider is misconfigured. Revisit Step 2. <button class="info-pill" data-modal="m-oidcsetup">ⓘ</button></td></tr>
+        <tr><td><code>fmt -check</code> fails the build</td><td>Your code isn't formatted. Run <span class="inline-code">terraform fmt -recursive</span> locally and commit.</td></tr>
+        <tr><td>Nodes stuck <code>NotReady</code> / pods pending</td><td>Usually the pod-networking add-on or the subnet tags. Confirm the EKS discovery tags exist on the subnets and that <span class="inline-code">vpc-cni</span> is healthy. <button class="info-pill" data-modal="m-subnettags">ⓘ</button></td></tr>
+        <tr><td><code>kubectl</code>: "You must be logged in to the server (Unauthorized)"</td><td>Your identity has no access entry. Add its ARN to <span class="inline-code">cluster_admin_role_arns</span>, open a PR, and apply — or run the printed <span class="inline-code">update-kubeconfig</span> with the right AWS profile.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout callout-note">
+      <span class="callout-title">Where to get unstuck</span>
+      The official <a class="ext-link" href="https://docs.aws.amazon.com/eks/latest/userguide/troubleshooting.html" target="_blank" rel="noopener">EKS troubleshooting guide</a>
+      and the <a class="ext-link" href="https://repost.aws/tags/knowledge-center/TA4IvCeWI1TE66q4jouw6_Pw" target="_blank" rel="noopener">AWS re:Post community</a>
+      cover most situations beyond these.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 14. ALL REFERENCES -->
+  <!-- ============================================================ -->
+  <section style="margin-bottom:3rem;">
+    <div class="eyebrow">Section 14</div>
+    <h2 id="references">All official references in one place</h2>
+    <p>Every link below points to primary, official documentation. Bookmark this section.</p>
+
+    <h3 style="margin-bottom:0.5rem;">Amazon EKS</h3>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html" target="_blank" rel="noopener">EKS User Guide — What is Amazon EKS?</a>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html" target="_blank" rel="noopener">EKS — Managed node groups</a>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/userguide/eks-add-ons.html" target="_blank" rel="noopener">EKS — Cluster add-ons</a>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html" target="_blank" rel="noopener">EKS — IAM Roles for Service Accounts (IRSA)</a>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/userguide/access-entries.html" target="_blank" rel="noopener">EKS — Access entries</a>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html" target="_blank" rel="noopener">EKS — Kubernetes version lifecycle</a>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/userguide/update-cluster.html" target="_blank" rel="noopener">EKS — Updating a cluster version</a>
+    <a class="ref-link" href="https://aws.amazon.com/eks/pricing/" target="_blank" rel="noopener">EKS — Pricing</a>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/best-practices/introduction.html" target="_blank" rel="noopener">EKS — Best Practices Guide</a>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/userguide/troubleshooting.html" target="_blank" rel="noopener">EKS — Troubleshooting</a>
+
+    <h3 style="margin:1.5rem 0 0.5rem;">Terraform &amp; the official modules</h3>
+    <a class="ref-link" href="https://developer.hashicorp.com/terraform/intro" target="_blank" rel="noopener">Terraform — Introduction &amp; core concepts</a>
+    <a class="ref-link" href="https://developer.hashicorp.com/terraform/language/state" target="_blank" rel="noopener">Terraform — State</a>
+    <a class="ref-link" href="https://developer.hashicorp.com/terraform/language/backend/s3" target="_blank" rel="noopener">Terraform — S3 backend (remote state + locking)</a>
+    <a class="ref-link" href="https://developer.hashicorp.com/terraform/language/modules" target="_blank" rel="noopener">Terraform — Modules</a>
+    <a class="ref-link" href="https://developer.hashicorp.com/terraform/language/providers" target="_blank" rel="noopener">Terraform — Providers</a>
+    <a class="ref-link" href="https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/latest" target="_blank" rel="noopener">Registry — Official AWS EKS module</a>
+    <a class="ref-link" href="https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws/latest" target="_blank" rel="noopener">Registry — Official AWS VPC module</a>
+    <a class="ref-link" href="https://developer.hashicorp.com/terraform/tutorials/kubernetes/eks" target="_blank" rel="noopener">HashiCorp tutorial — Provision an EKS cluster</a>
+    <a class="ref-link" href="https://docs.aws.amazon.com/prescriptive-guidance/latest/getting-started-terraform/structure.html" target="_blank" rel="noopener">AWS Prescriptive Guidance — Terraform structure</a>
+
+    <h3 style="margin:1.5rem 0 0.5rem;">GitHub Actions &amp; OIDC</h3>
+    <a class="ref-link" href="https://docs.github.com/en/actions" target="_blank" rel="noopener">GitHub Actions — Documentation</a>
+    <a class="ref-link" href="https://docs.github.com/en/actions/concepts/security/openid-connect" target="_blank" rel="noopener">GitHub Actions — About OpenID Connect (OIDC)</a>
+    <a class="ref-link" href="https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws" target="_blank" rel="noopener">GitHub Actions — Configuring OIDC in AWS</a>
+    <a class="ref-link" href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html" target="_blank" rel="noopener">AWS IAM — Create an OIDC identity provider</a>
+    <a class="ref-link" href="https://github.com/aws-actions/configure-aws-credentials" target="_blank" rel="noopener">GitHub Action — configure-aws-credentials</a>
+    <a class="ref-link" href="https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manage-environments" target="_blank" rel="noopener">GitHub Actions — Environments &amp; approvals</a>
+    <a class="ref-link" href="https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/store-information-in-variables" target="_blank" rel="noopener">GitHub Actions — Variables</a>
+
+    <h3 style="margin:1.5rem 0 0.5rem;">Kubernetes core concepts</h3>
+    <a class="ref-link" href="https://kubernetes.io/docs/concepts/overview/" target="_blank" rel="noopener">Kubernetes — Overview</a>
+    <a class="ref-link" href="https://kubernetes.io/docs/concepts/workloads/pods/" target="_blank" rel="noopener">Kubernetes — Pods</a>
+    <a class="ref-link" href="https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/" target="_blank" rel="noopener">Kubernetes — Namespaces</a>
+    <a class="ref-link" href="https://kubernetes.io/docs/concepts/policy/resource-quotas/" target="_blank" rel="noopener">Kubernetes — Resource Quotas</a>
+    <a class="ref-link" href="https://kubernetes.io/docs/concepts/services-networking/network-policies/" target="_blank" rel="noopener">Kubernetes — Network Policies</a>
+    <a class="ref-link" href="https://kubernetes.io/docs/reference/access-authn-authz/rbac/" target="_blank" rel="noopener">Kubernetes — RBAC</a>
+    <a class="ref-link" href="https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/" target="_blank" rel="noopener">Kubernetes — Taints &amp; Tolerations</a>
+
+    <h3 style="margin:1.5rem 0 0.5rem;">Code-quality &amp; security tools</h3>
+    <a class="ref-link" href="https://github.com/terraform-linters/tflint" target="_blank" rel="noopener">TFLint — Terraform linter</a>
+    <a class="ref-link" href="https://trivy.dev/latest/docs/" target="_blank" rel="noopener">Trivy — Security scanner</a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer style="border-top:1px solid var(--ibm-grey-20);padding-top:1.5rem;margin-top:3rem;">
+    <p style="color:var(--ibm-grey-50);font-size:0.85em;">
+      This documentation is a learning resource. Cloud services, tool versions, and prices change over time —
+      always confirm specifics against the official documentation linked above before deploying. Tip: use the
+      <strong>A− / A+</strong> control at the top to adjust text size at any time.
+    </p>
+  </footer>
+
+  </main>
+</div>
+
+<!-- ============================================================
+     MODAL POPUPS — each is hidden until its button is clicked.
+     Stored as templates; JS clones content into one overlay.
+     ============================================================ -->
+<div id="modalOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="modalTitle" style="margin:0;color:var(--ibm-blue-90);font-size:1.3em;"></h3>
+      <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- Hidden store of all popup content -->
+<div id="modalStore" style="display:none;">
+
+  <div data-id="m-k8s" data-title="Kubernetes, a bit deeper">
+    <p>Kubernetes was originally built at Google (based on a system they used internally called Borg) and is now
+    open-source, governed by the Cloud Native Computing Foundation. It groups your computers into a "cluster" and
+    presents them as one big pool of resources. You describe the <em>desired state</em> ("5 copies of my app, each
+    needing this much memory"), and Kubernetes continuously works to make reality match that description — a model
+    called "declarative" management.</p>
+    <a class="ref-link" href="https://kubernetes.io/docs/concepts/overview/" target="_blank" rel="noopener">Kubernetes — Overview</a>
+  </div>
+
+  <div data-id="m-pods" data-title="Pods & containers">
+    <p>A <strong>container</strong> is your app plus everything it needs to run, packaged into one portable unit
+    (commonly built with Docker). It runs the same on any machine. A <strong>pod</strong> is the smallest thing
+    Kubernetes schedules — usually one container, sometimes a few that must live together. Kubernetes creates,
+    moves, and destroys pods to keep your desired state true.</p>
+    <a class="ref-link" href="https://kubernetes.io/docs/concepts/workloads/pods/" target="_blank" rel="noopener">Kubernetes — Pods</a>
+  </div>
+
+  <div data-id="m-eks" data-title="Amazon EKS">
+    <p>EKS gives you a certified, conformant Kubernetes control plane that AWS operates across multiple
+    Availability Zones for high availability, and patches for you. It integrates natively with AWS identity (IAM),
+    networking (VPC), load balancers, and storage. You manage the worker nodes and your apps; AWS manages the
+    hardest part.</p>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html" target="_blank" rel="noopener">EKS — What is Amazon EKS?</a>
+  </div>
+
+  <div data-id="m-nodegroup" data-title="Managed node groups">
+    <p>A managed node group is a set of EC2 instances whose lifecycle EKS handles: provisioning, updates, and
+    graceful draining during changes. You set the instance type and the min / desired / max counts, and EKS keeps
+    the group within those bounds. Since EKS 1.30, new groups default to the Amazon Linux 2023 operating system.</p>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html" target="_blank" rel="noopener">EKS — Managed node groups</a>
+  </div>
+
+  <div data-id="m-addons" data-title="Cluster add-ons">
+    <p>Add-ons are the small but essential programs every cluster needs. EKS can install and update them for you
+    as "managed add-ons": <strong>vpc-cni</strong> (gives pods network addresses), <strong>coredns</strong>
+    (in-cluster DNS / phone book), <strong>kube-proxy</strong> (routes traffic to the right pods), and the
+    <strong>aws-ebs-csi-driver</strong> (lets pods request persistent EBS disks).</p>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/userguide/eks-add-ons.html" target="_blank" rel="noopener">EKS — Cluster add-ons</a>
+  </div>
+
+  <div data-id="m-irsa" data-title="IRSA — IAM Roles for Service Accounts">
+    <p>Normally, anything running on a node could use the node's AWS permissions — too broad. IRSA lets a specific
+    Kubernetes "service account" (the identity attached to a pod) assume a specific, narrow IAM role instead. This
+    is least-privilege done right, and it's the foundation for safe multi-tenancy and for add-ons like the EBS CSI
+    driver. It works via an OIDC provider EKS creates for your cluster.</p>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html" target="_blank" rel="noopener">EKS — IRSA</a>
+  </div>
+
+  <div data-id="m-access" data-title="Access entries">
+    <p>Access entries are the modern, API-driven way to grant IAM users and roles permissions inside the cluster.
+    They replaced the older <span class="inline-code">aws-auth</span> ConfigMap, which was easy to misedit and
+    could lock you out. Our setup grants the pipeline (and any roles you list) cluster-admin via access entries.</p>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/userguide/access-entries.html" target="_blank" rel="noopener">EKS — Access entries</a>
+  </div>
+
+  <div data-id="m-terraform" data-title="Terraform">
+    <p>Terraform, by HashiCorp, is the most widely used Infrastructure-as-Code tool. You write configuration in a
+    readable language called HCL, and Terraform's providers translate it into API calls against AWS (or hundreds
+    of other platforms). Its key trick is comparing your desired configuration against recorded state to compute a
+    minimal, safe set of changes.</p>
+    <a class="ref-link" href="https://developer.hashicorp.com/terraform/intro" target="_blank" rel="noopener">Terraform — Introduction</a>
+  </div>
+
+  <div data-id="m-resource" data-title="Resource">
+    <p>A resource is the basic building block — one real object Terraform manages, like
+    <span class="inline-code">aws_s3_bucket</span> or <span class="inline-code">aws_eks_cluster</span>. You
+    declare its desired settings; Terraform creates, updates, or deletes it to match.</p>
+    <a class="ref-link" href="https://developer.hashicorp.com/terraform/language/resources" target="_blank" rel="noopener">Terraform — Resources</a>
+  </div>
+
+  <div data-id="m-module" data-title="Module">
+    <p>A module is a reusable package of resources. Instead of hand-writing every subnet, route, and gateway for a
+    network, you call the official VPC module and pass a few inputs. Modules encode best practices and save
+    enormous amounts of error-prone boilerplate. This project uses the official AWS VPC and EKS modules.</p>
+    <a class="ref-link" href="https://developer.hashicorp.com/terraform/language/modules" target="_blank" rel="noopener">Terraform — Modules</a>
+    <a class="ref-link" href="https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/latest" target="_blank" rel="noopener">The official EKS module</a>
+  </div>
+
+  <div data-id="m-provider" data-title="Provider">
+    <p>A provider is a plugin that teaches Terraform how to talk to a particular API. The <span class="inline-code">aws</span>
+    provider knows AWS; the <span class="inline-code">kubernetes</span> provider knows the Kubernetes API. You pin
+    provider versions so upgrades never surprise you.</p>
+    <a class="ref-link" href="https://developer.hashicorp.com/terraform/language/providers" target="_blank" rel="noopener">Terraform — Providers</a>
+  </div>
+
+  <div data-id="m-state" data-title="State (Terraform's memory)">
+    <p>State is the file that records everything Terraform has built and maps your config to real resource IDs.
+    It's the source of truth Terraform diffs against. It can contain secrets, so we store it in an encrypted,
+    versioned, private S3 bucket — never in Git, never just on a laptop.</p>
+    <a class="ref-link" href="https://developer.hashicorp.com/terraform/language/state" target="_blank" rel="noopener">Terraform — State</a>
+  </div>
+
+  <div data-id="m-plan" data-title="Plan & Apply">
+    <p><strong>terraform plan</strong> previews changes without making them — it shows exactly what will be
+    created, changed, or destroyed. <strong>terraform apply</strong> carries out those changes. Our pipeline runs
+    plan on pull requests (for review) and apply only after merge to main.</p>
+    <a class="ref-link" href="https://developer.hashicorp.com/terraform/cli/commands/plan" target="_blank" rel="noopener">Terraform — plan command</a>
+  </div>
+
+  <div data-id="m-gha" data-title="GitHub Actions">
+    <p>GitHub Actions is GitHub's built-in automation. You describe "workflows" in YAML files under
+    <span class="inline-code">.github/workflows/</span>, and GitHub runs them on fresh cloud machines in response
+    to events like pull requests and merges. It's where our plan/apply and lint/security checks run.</p>
+    <a class="ref-link" href="https://docs.github.com/en/actions" target="_blank" rel="noopener">GitHub Actions — Docs</a>
+  </div>
+
+  <div data-id="m-oidc" data-title="OIDC — logging in without stored keys">
+    <p>OpenID Connect (OIDC) lets GitHub prove its identity to AWS for a single job. AWS then hands back
+    temporary credentials that expire in minutes. There's no long-lived AWS access key stored in GitHub to leak or
+    rotate. The IAM role's trust policy restricts which repository (and optionally branch) may use it.</p>
+    <a class="ref-link" href="https://docs.github.com/en/actions/concepts/security/openid-connect" target="_blank" rel="noopener">GitHub — About OIDC</a>
+    <a class="ref-link" href="https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws" target="_blank" rel="noopener">GitHub — OIDC in AWS</a>
+  </div>
+
+  <div data-id="m-oidcsetup" data-title="Setting up OIDC in AWS">
+    <p>Two pieces: (1) an IAM OIDC identity provider for <span class="inline-code">token.actions.githubusercontent.com</span>,
+    and (2) an IAM role whose trust policy allows that provider — scoped by the <span class="inline-code">:sub</span>
+    condition to your repo. Then attach a permissions policy for the AWS actions Terraform needs. The links below
+    are the authoritative steps.</p>
+    <a class="ref-link" href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html" target="_blank" rel="noopener">AWS IAM — Create OIDC provider</a>
+    <a class="ref-link" href="https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws" target="_blank" rel="noopener">GitHub — Configure OIDC in AWS</a>
+    <a class="ref-link" href="https://github.com/aws-actions/configure-aws-credentials" target="_blank" rel="noopener">configure-aws-credentials action</a>
+  </div>
+
+  <div data-id="m-locking" data-title="State locking">
+    <p>When Terraform runs, it writes a lock record to a small DynamoDB table. If a second run starts while the
+    first holds the lock, it waits or fails instead of writing at the same time and corrupting state. This is why
+    the bootstrap step creates a DynamoDB table alongside the S3 bucket.</p>
+    <a class="ref-link" href="https://developer.hashicorp.com/terraform/language/backend/s3" target="_blank" rel="noopener">Terraform — S3 backend &amp; locking</a>
+  </div>
+
+  <div data-id="m-ghvars" data-title="GitHub repository variables">
+    <p>Variables hold non-secret configuration (region, bucket names) that your workflows read at runtime, keeping
+    those values out of the committed files. For true secrets you'd use "Secrets" instead — but this setup needs
+    none, thanks to OIDC.</p>
+    <a class="ref-link" href="https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/store-information-in-variables" target="_blank" rel="noopener">GitHub — Variables</a>
+  </div>
+
+  <div data-id="m-ghenv" data-title="GitHub Environments & approvals">
+    <p>An Environment is a named deployment target with optional protection rules. Add "required reviewers" to a
+    <span class="inline-code">production</span> environment and any job targeting it pauses until a human approves —
+    a simple, powerful safety gate before real applies.</p>
+    <a class="ref-link" href="https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manage-environments" target="_blank" rel="noopener">GitHub — Environments</a>
+  </div>
+
+  <div data-id="m-awsstruct" data-title="AWS guidance on Terraform structure">
+    <p>AWS's Prescriptive Guidance recommends separating concerns into distinct configurations (root modules) with
+    their own state, and staying close to a standard module structure. This is exactly why we split cluster,
+    node-groups, and tenants into separate folders.</p>
+    <a class="ref-link" href="https://docs.aws.amazon.com/prescriptive-guidance/latest/getting-started-terraform/structure.html" target="_blank" rel="noopener">AWS — Terraform structure</a>
+  </div>
+
+  <div data-id="m-s3backend" data-title="Remote state in S3 + DynamoDB">
+    <p>Storing state remotely in S3 means the team shares one source of truth, the state survives a lost laptop,
+    and it's encrypted and versioned. The paired DynamoDB table provides locking. The bootstrap folder creates
+    both — and uses local state itself only because it's bootstrapping the very storage everything else relies on.</p>
+    <a class="ref-link" href="https://developer.hashicorp.com/terraform/language/backend/s3" target="_blank" rel="noopener">Terraform — S3 backend</a>
+  </div>
+
+  <div data-id="m-taints" data-title="Taints & tolerations">
+    <p>A <strong>taint</strong> on a node says "don't schedule pods here unless they explicitly tolerate this."
+    A <strong>toleration</strong> on a pod is that explicit permission. We taint the system node group so only core
+    add-ons (which carry the matching toleration) run there, keeping those baseline nodes reserved and predictable.</p>
+    <a class="ref-link" href="https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/" target="_blank" rel="noopener">Kubernetes — Taints &amp; Tolerations</a>
+  </div>
+
+  <div data-id="m-vpcmod" data-title="The official VPC module">
+    <p>The terraform-aws-modules VPC module builds a complete network — subnets across zones, route tables,
+    internet and NAT gateways — from a handful of inputs. It also applies the subnet tags EKS needs. Using it
+    avoids dozens of hand-written, easy-to-misconfigure resources.</p>
+    <a class="ref-link" href="https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws/latest" target="_blank" rel="noopener">Registry — VPC module</a>
+  </div>
+
+  <div data-id="m-subnettags" data-title="Why subnets need special tags">
+    <p>EKS and the AWS Load Balancer Controller discover where to place load balancers by reading subnet tags:
+    <span class="inline-code">kubernetes.io/role/elb</span> on public subnets (internet-facing LBs),
+    <span class="inline-code">kubernetes.io/role/internal-elb</span> on private subnets (internal LBs), and a
+    <span class="inline-code">kubernetes.io/cluster/&lt;name&gt;</span> tag marking subnets for the cluster. Missing
+    tags is a very common cause of "my load balancer won't create."</p>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/userguide/network-load-balancing.html" target="_blank" rel="noopener">EKS — Load balancing &amp; subnet tags</a>
+  </div>
+
+  <div data-id="m-eksmod" data-title="The official EKS module">
+    <p>The terraform-aws-modules EKS module creates the control plane, IAM roles, the OIDC provider for IRSA,
+    security groups, managed node groups, and add-ons — coordinating their tricky ordering for you. It's the
+    de-facto standard and is actively maintained.</p>
+    <a class="ref-link" href="https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/latest" target="_blank" rel="noopener">Registry — EKS module</a>
+    <a class="ref-link" href="https://github.com/terraform-aws-modules/terraform-aws-eks" target="_blank" rel="noopener">GitHub — terraform-aws-eks</a>
+  </div>
+
+  <div data-id="m-eksmod-v21" data-title="⚠️ EKS module version note (important)">
+    <p>The EKS module has changed its input names across major versions. In <strong>v20</strong>, you used
+    <span class="inline-code">cluster_name</span> and <span class="inline-code">cluster_version</span>. In
+    <strong>v21+</strong>, those became <span class="inline-code">name</span> and
+    <span class="inline-code">kubernetes_version</span>, and v21 also introduces EKS Auto Mode options. Because the
+    API shifts between majors, <strong>always pin the module version</strong> (e.g.
+    <span class="inline-code">version = "~> 21.0"</span>) and read that version's docs and upgrade guide before
+    bumping it. Don't assume input names from one major version work in another.</p>
+    <a class="ref-link" href="https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/latest" target="_blank" rel="noopener">EKS module — latest docs &amp; inputs</a>
+    <a class="ref-link" href="https://github.com/terraform-aws-modules/terraform-aws-eks/blob/master/docs/UPGRADE-21.0.md" target="_blank" rel="noopener">EKS module — v21 upgrade guide</a>
+  </div>
+
+  <div data-id="m-remotestate" data-title="How separate folders share facts">
+    <p>A <span class="inline-code">terraform_remote_state</span> data source lets one configuration read another's
+    outputs. Your node-groups and tenants folders point at the cluster's state file and read its published outputs
+    (cluster name, subnet IDs, OIDC ARN) — so they attach to the real cluster without hardcoding anything.</p>
+    <a class="ref-link" href="https://developer.hashicorp.com/terraform/language/state/remote-state-data" target="_blank" rel="noopener">Terraform — terraform_remote_state</a>
+  </div>
+
+  <div data-id="m-whymodules" data-title="Why community modules?">
+    <p>The terraform-aws-modules collection (led by Anton Babenko) follows AWS best practices, supports
+    production-grade deployments, and is maintained by a large community. Leaning on them means you inherit fixes
+    and improvements instead of maintaining hundreds of lines of low-level resources yourself.</p>
+    <a class="ref-link" href="https://github.com/terraform-aws-modules" target="_blank" rel="noopener">GitHub — terraform-aws-modules</a>
+  </div>
+
+  <div data-id="m-mng" data-title="Managed node group reference">
+    <p>For all the knobs a node group supports — instance types, disk size, labels, taints, scaling, custom launch
+    templates, and AMI selection — see the official reference. Since EKS 1.30 the default OS is Amazon Linux 2023.</p>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html" target="_blank" rel="noopener">EKS — Managed node groups</a>
+  </div>
+
+  <div data-id="m-multitenant" data-title="EKS multi-tenancy">
+    <p>Multi-tenancy means multiple teams or workloads safely sharing one cluster. AWS's best-practices guide
+    covers the isolation layers — namespaces, quotas, network policies, RBAC, and node isolation — and the
+    trade-offs between "soft" and "hard" isolation. Our tenant module bundles these per team.</p>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/best-practices/multitenancy.html" target="_blank" rel="noopener">EKS Best Practices — Multi-tenancy</a>
+  </div>
+
+  <div data-id="m-namespace" data-title="Namespaces">
+    <p>A namespace is a named partition inside a cluster. It's the first boundary between teams: names don't
+    collide across namespaces, and quotas, network policies, and RBAC all attach to a namespace.</p>
+    <a class="ref-link" href="https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/" target="_blank" rel="noopener">Kubernetes — Namespaces</a>
+  </div>
+
+  <div data-id="m-quota" data-title="ResourceQuota & LimitRange">
+    <p>A <strong>ResourceQuota</strong> caps the total CPU, memory, and object counts a namespace may use. A
+    <strong>LimitRange</strong> sets sensible per-pod defaults and ceilings. Together they ensure one team can't
+    consume the whole cluster.</p>
+    <a class="ref-link" href="https://kubernetes.io/docs/concepts/policy/resource-quotas/" target="_blank" rel="noopener">Kubernetes — Resource Quotas</a>
+  </div>
+
+  <div data-id="m-netpol" data-title="Network Policies">
+    <p>A NetworkPolicy is a firewall for pod traffic. A default-deny policy means a team's pods can't be reached by
+    other teams' pods unless explicitly allowed — crucial for isolation. (Your cluster needs a CNI that enforces
+    them; the AWS VPC CNI supports network policies.)</p>
+    <a class="ref-link" href="https://kubernetes.io/docs/concepts/services-networking/network-policies/" target="_blank" rel="noopener">Kubernetes — Network Policies</a>
+  </div>
+
+  <div data-id="m-rbac" data-title="RBAC — Role-Based Access Control">
+    <p>RBAC controls who can do what inside the cluster. A <strong>Role</strong> lists allowed actions within a
+    namespace; a <strong>RoleBinding</strong> grants that Role to specific users or groups. This scopes each team's
+    people to just their own namespace.</p>
+    <a class="ref-link" href="https://kubernetes.io/docs/reference/access-authn-authz/rbac/" target="_blank" rel="noopener">Kubernetes — RBAC</a>
+  </div>
+
+  <div data-id="m-upgrade" data-title="Upgrading the cluster version">
+    <p>Upgrade one minor version at a time. EKS upgrades the control plane first, then you roll the managed node
+    groups to matching versions. Review the per-version release notes for breaking changes before upgrading.</p>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/userguide/update-cluster.html" target="_blank" rel="noopener">EKS — Update a cluster version</a>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions-standard.html" target="_blank" rel="noopener">EKS — Version release notes</a>
+  </div>
+
+  <div data-id="m-versions" data-title="Kubernetes version lifecycle on EKS">
+    <p>Standard support runs ~14 months per minor version; extended support adds ~12 months at a higher price; then
+    EKS may auto-upgrade you. Check the official page for which versions are currently in standard support and pick
+    a current one for new clusters.</p>
+    <a class="ref-link" href="https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html" target="_blank" rel="noopener">EKS — Version lifecycle</a>
+    <a class="ref-link" href="https://endoflife.date/amazon-eks" target="_blank" rel="noopener">endoflife.date — Amazon EKS</a>
+  </div>
+
+  <div data-id="m-tflint" data-title="TFLint">
+    <p>TFLint is a linter for Terraform. It catches provider-specific errors (like deprecated or invalid instance
+    types), unused declarations, and style issues that <span class="inline-code">terraform validate</span> won't.
+    The AWS ruleset adds deep AWS-specific checks.</p>
+    <a class="ref-link" href="https://github.com/terraform-linters/tflint" target="_blank" rel="noopener">TFLint — GitHub</a>
+  </div>
+
+  <div data-id="m-trivy" data-title="Trivy">
+    <p>Trivy is an open-source security scanner. In "config" mode it inspects Infrastructure-as-Code for
+    misconfigurations — overly open security groups, unencrypted resources, and the like — and reports them by
+    severity, letting your pipeline block risky changes.</p>
+    <a class="ref-link" href="https://trivy.dev/latest/docs/" target="_blank" rel="noopener">Trivy — Docs</a>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT — font sizing, modals, mobile nav, scroll-spy
+     ============================================================ -->
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- FONT SIZE CONTROL (14–36px) ---------- */
+  var root = document.documentElement;
+  var range = document.getElementById('fontRange');
+  var val = document.getElementById('fontVal');
+  var up = document.getElementById('fontUp');
+  var down = document.getElementById('fontDown');
+  var MIN = 14, MAX = 36;
+
+  function applyFont(px){
+    px = Math.max(MIN, Math.min(MAX, px));
+    root.style.setProperty('--base-font', px + 'px');
+    range.value = px;
+    val.textContent = px + 'px';
+    up.disabled = (px >= MAX);
+    down.disabled = (px <= MIN);
+    try{ localStorage.setItem('docFontPx', px); }catch(e){}
+  }
+  range.addEventListener('input', function(){ applyFont(parseInt(this.value,10)); });
+  up.addEventListener('click', function(){ applyFont(parseInt(range.value,10) + 2); });
+  down.addEventListener('click', function(){ applyFont(parseInt(range.value,10) - 2); });
+  // Restore saved size, default 16
+  var saved = 16;
+  try{ var s = localStorage.getItem('docFontPx'); if(s) saved = parseInt(s,10); }catch(e){}
+  applyFont(saved);
+
+  /* ---------- MODAL POPUPS ---------- */
+  var overlay = document.getElementById('modalOverlay');
+  var titleEl = document.getElementById('modalTitle');
+  var bodyEl = document.getElementById('modalBody');
+  var store = document.getElementById('modalStore');
+  var lastFocused = null;
+
+  function openModal(id){
+    var src = store.querySelector('[data-id="'+id+'"]');
+    if(!src){ return; }
+    titleEl.textContent = src.getAttribute('data-title') || 'More information';
+    bodyEl.innerHTML = src.innerHTML;
+    overlay.classList.add('open');
+    lastFocused = document.activeElement;
+    document.getElementById('modalClose').focus();
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal(){
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+    if(lastFocused){ lastFocused.focus(); }
+  }
+  // Delegate clicks from any info-pill with data-modal
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('[data-modal]');
+    if(btn){ e.preventDefault(); openModal(btn.getAttribute('data-modal')); return; }
+  });
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  overlay.addEventListener('click', function(e){ if(e.target === overlay){ closeModal(); } });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && overlay.classList.contains('open')){ closeModal(); } });
+
+  /* ---------- MOBILE SIDEBAR ---------- */
+  var sidebar = document.getElementById('sidebar');
+  var toggle = document.getElementById('menuToggle');
+  var backdrop = document.getElementById('navBackdrop');
+  function openNav(){ sidebar.classList.add('open'); backdrop.style.display='block'; }
+  function closeNav(){ sidebar.classList.remove('open'); backdrop.style.display='none'; }
+  toggle.addEventListener('click', function(){ sidebar.classList.contains('open') ? closeNav() : openNav(); });
+  backdrop.addEventListener('click', closeNav);
+  // Close nav after tapping a link on mobile
+  sidebar.addEventListener('click', function(e){ if(e.target.closest('.nav-link') && window.innerWidth <= 1024){ closeNav(); } });
+
+  /* ---------- SCROLL-SPY (highlight current section) ---------- */
+  var links = Array.prototype.slice.call(document.querySelectorAll('.nav-link'));
+  var map = {};
+  links.forEach(function(l){
+    var id = l.getAttribute('href').slice(1);
+    var sec = document.getElementById(id);
+    if(sec){ map[id] = l; }
+  });
+  var targets = Object.keys(map).map(function(id){ return document.getElementById(id); });
+  if('IntersectionObserver' in window){
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){
+          links.forEach(function(l){ l.classList.remove('active'); });
+          var active = map[en.target.id];
+          if(active){ active.classList.add('active'); }
+        }
+      });
+    }, { rootMargin: '-80px 0px -70% 0px', threshold: 0 });
+    targets.forEach(function(t){ obs.observe(t); });
+  }
+})();
+</script>
+
+</body>
+</html>
