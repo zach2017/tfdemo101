@@ -1,0 +1,50 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Sid": "EKS",        "Effect": "Allow", "Action": "eks:*",         "Resource": "*" },
+    { "Sid": "EC2",        "Effect": "Allow", "Action": "ec2:*",         "Resource": "*" },
+    { "Sid": "AutoScaling","Effect": "Allow", "Action": "autoscaling:*", "Resource": "*" },
+    {
+      "Sid": "IAMForClusterAndNodeRoles",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:PassRole",
+        "iam:ListRoles", "iam:TagRole", "iam:UntagRole",
+        "iam:CreatePolicy", "iam:DeletePolicy", "iam:GetPolicy",
+        "iam:CreatePolicyVersion", "iam:DeletePolicyVersion",
+        "iam:GetPolicyVersion", "iam:ListPolicyVersions", "iam:ListPolicies",
+        "iam:AttachRolePolicy", "iam:DetachRolePolicy",
+        "iam:ListAttachedRolePolicies", "iam:ListRolePolicies",
+        "iam:GetRolePolicy", "iam:PutRolePolicy", "iam:DeleteRolePolicy",
+        "iam:CreateOpenIDConnectProvider", "iam:DeleteOpenIDConnectProvider",
+        "iam:GetOpenIDConnectProvider", "iam:TagOpenIDConnectProvider",
+        "iam:CreateServiceLinkedRole",
+        "iam:CreateInstanceProfile", "iam:DeleteInstanceProfile",
+        "iam:GetInstanceProfile", "iam:AddRoleToInstanceProfile",
+        "iam:RemoveRoleFromInstanceProfile"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "TerraformStateBucket",
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket","s3:GetObject","s3:PutObject","s3:DeleteObject","s3:GetBucketVersioning"],
+      "Resource": [
+        "arn:aws:s3:::kafakademo-tfstate-bucket",
+        "arn:aws:s3:::kafakademo-tfstate-bucket/*"
+      ]
+    },
+    {
+      "Sid": "TerraformStateLock",
+      "Effect": "Allow",
+      "Action": ["dynamodb:GetItem","dynamodb:PutItem","dynamodb:DeleteItem"],
+      "Resource": "arn:aws:dynamodb:*:406207085797:table/-LOCK-TABLE-NAME"
+    },
+    {
+      "Sid": "KMS",
+      "Effect": "Allow",
+      "Action": ["kms:CreateKey","kms:DescribeKey","kms:CreateAlias","kms:DeleteAlias","kms:ListAliases","kms:TagResource","kms:ScheduleKeyDeletion","kms:GetKeyPolicy","kms:PutKeyPolicy","kms:CreateGrant"],
+      "Resource": "*"
+    }
+  ]
+}
