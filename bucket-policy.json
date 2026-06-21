@@ -1,0 +1,20 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "AllowPipelineRole",
+    "Effect": "Allow",
+    "Principal": {
+      "AWS": "arn:aws:iam::406207085797:role/github-actions-eks"
+    },
+    "Action": [
+      "s3:ListBucket",
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject"
+    ],
+    "Resource": [
+      "arn:aws:s3:::eks-platform-tfstate-zac2026",
+      "arn:aws:s3:::eks-platform-tfstate-zac2026/*"
+    ]
+  }]
+}

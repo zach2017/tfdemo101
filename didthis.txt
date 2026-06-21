@@ -1,0 +1,67 @@
+
+  986  gh auth login
+  987  gh variable set AWS_ROLE_ARN    --body "$ROLE_ARN"     --repo "$GH_ORG/$GH_REPO"\ngh variable set AWS_REGION      --body "$AWS_REGION"   --repo "$GH_ORG/$GH_REPO"\ngh variable set TF_STATE_BUCKET --body "$STATE_BUCKET" --repo "$GH_ORG/$GH_REPO"\ngh variable set TF_LOCK_TABLE   --body "$LOCK_TABLE"   --repo "$GH_ORG/$GH_REPO"\ngh variable set PROJECT_NAME    --body "eks-platform"  --repo "$GH_ORG/$GH_REPO"\ngh variable set ENVIRONMENT     --body "dev"           --repo "$GH_ORG/$GH_REPO"
+  988  gh variable set AWS_ROLE_ARN    --body "$ROLE_ARN"     --repo "$GH_ORG/$GH_REPO"
+  989  echo $ROLE_ARN
+  990  # Trust policy is attached and scoped to your repo:\naws iam get-role --role-name "$ROLE_NAME" \\n  --query 'Role.AssumeRolePolicyDocument' --output json\n\n# Permissions policy is attached:\naws iam get-role-policy --role-name "$ROLE_NAME" \\n  --policy-name eks-pipeline-permissions --query 'PolicyName' --output text\n\n# The ARN for GitHub:\necho "Set GitHub variable AWS_ROLE_ARN = $ROLE_ARN"
+  991  # Trust policy is attached and scoped to your repo:\naws iam get-role --role-name "$ROLE_NAME" \\n  --query 'Role.AssumeRolePolicyDocument' --output json\n\n# Permissions policy is attached:\naws iam get-role-policy --role-name "$ROLE_NAME" \\n  --policy-name eks-pipeline-permissions --query 'PolicyName' --output text\n\n# The ARN for GitHub:\necho "Set GitHub variable AWS_ROLE_ARN = $ROLE_ARN"
+  992  aws iam get-role --role-name "$ROLE_NAME" \\n  --query 'Role.AssumeRolePolicyDocument' --output json
+  993  aws iam get-role-policy --role-name "$ROLE_NAME" \\n  --policy-name eks-pipeline-permissions --query 'PolicyName' --output text
+  994  arn:aws:iam::406207085797:oidc-provider/token.actions.githubusercontent.com
+  995  export ROLE_ARN="arn:aws:iam::406207085797:oidc-provider/token.actions.githubusercontent.com"\n
+  996  aws iam get-role --role-name "$ROLE_NAME" \\n  --query 'Role.AssumeRolePolicyDocument' --output json
+  997  env
+  998  env | grep GH
+  999  gh variable set AWS_ROLE_ARN    --body "$ROLE_ARN"     --repo "$GH_ORG/$GH_REPO"
+ 1000  export ROLE_ARN="arn:aws:iam::406207085797:oidc-provider/token.actions.githubusercontent.com"\n
+ 1001  aws cloudformation describe-stacks \\n  --stack-name github-oidc-eks \\n  --query "Stacks[0].Outputs[?OutputKey=='RoleArn'].OutputValue" \\n  --output text
+ 1002  aws cloudformation deploy \\n  --template-file github-oidc-role.yaml \\n  --stack-name github-oidc-eks \\n  --capabilities CAPABILITY_NAMED_IAM \\n  --parameter-overrides \\n      GitHubOrg=zach2017 \\n      GitHubRepo=tfdemo101 \\n      StateBucketName=kafakademo-tfstate-bucket \\n      LockTableName=eks-platform-tflock
+ 1003  cd
+ 1004  cd tf*
+ 1005  ls
+ 1006  cd tf*
+ 1007  dir
+ 1008  ls
+ 1009  aws cloudformation deploy \\n  --template-file github-oidc-role.yaml \\n  --stack-name github-oidc-eks \\n  --capabilities CAPABILITY_NAMED_IAM \\n  --parameter-overrides \\n      GitHubOrg=zach2017 \\n      GitHubRepo=tfdemo101 \\n      StateBucketName=kafakademo-tfstate-bucket \\n      LockTableName=eks-platform-tflock
+ 1010  aws cloudformation describe-stacks \\n  --stack-name github-oidc-eks \\n  --query "Stacks[0].Outputs[?OutputKey=='RoleArn'].OutputValue" \\n  --output text
+ 1011   Confirm what you just set\necho "Account:  $ACCOUNT_ID"\necho "Repo:     $GH_ORG/$GH_REPO"\necho "Role:     $ROLE_NAME"\necho "Bucket:   $STATE_BUCKET"\necho "Lock:     $LOCK_TABLE"
+ 1012  env
+ 1013  aws iam get-role --role-name "$ROLE_NAME" --query 'Role.Arn' --output text\n
+ 1014  ROLE_ARN="$(aws iam get-role --role-name "$ROLE_NAME" --query 'Role.Arn' --output text)"\necho "Setting AWS_ROLE_ARN = $ROLE_ARN"\ngh variable set AWS_ROLE_ARN --body "$ROLE_ARN" --repo "$GH_ORG/$GH_REPO"
+ 1015   Confirm what you just set\necho "Account:  $ACCOUNT_ID"\necho "Repo:     $GH_ORG/$GH_REPO"\necho "Role:     $ROLE_NAME"\necho "Bucket:   $STATE_BUCKET"\necho "Lock:     $LOCK_TABLE"
+ 1016  git branch --show-current
+ 1017  git show --stat HEAD
+ 1018  git status\n
+ 1019  git log origin/$(git branch --show-current)..HEAD --oneline\n
+ 1020  gh run list --repo "$GH_ORG/$GH_REPO" --limit 10\n
+ 1021  gh workflow run cluster.yml --repo "$GH_ORG/$GH_REPO" --ref main
+ 1022  gh run list --repo "$GH_ORG/$GH_REPO" --limit 10\n
+ 1023  aws iam get-role --role-name "$ROLE_NAME" \                         \n  --query 'Role.AssumeRolePolicyDocument' --output json  
+ 1024  aws iam get-role --role-name "$ROLE_NAME" \                         \n  --query 'Role.AssumeRolePolicyDocument' --output json  
+ 1025  aws iam get-role --role-name "$ROLE_NAME" \                         \n  --query 'Role.AssumeRolePolicyDocument' --output json  
+ 1026  aws iam get-role --role-name "$ROLE_NAME" --query 'Role.Arn' --output text\n
+ 1027  gh workflow run cluster.yml --repo "$GH_ORG/$GH_REPO" --ref main\n
+ 1028  echo "Repo:     $GH_ORG/$GH_REPO"
+ 1029  gh workflow run cluster.yml --repo "$GH_ORG/$GH_REPO" --ref main\n
+ 1030  ls
+ 1031  cd terr*
+ 1032  ls
+ 1033  terraform fmt -recursive
+ 1034  cd ..
+ 1035  cat > kms-state-policy.json << 'EOF'\n{\n  "Version": "2012-10-17",\n  "Statement": [{\n    "Sid": "TerraformStateKMS",\n    "Effect": "Allow",\n    "Action": [\n      "kms:Decrypt",\n      "kms:Encrypt",\n      "kms:GenerateDataKey",\n      "kms:DescribeKey"\n    ],\n    "Resource": "*"\n  }]\n}\nEOF
+ 1036  aws iam put-role-policy \\n  --role-name "$ROLE_NAME" \\n  --policy-name terraform-state-kms \\n  --policy-document file://kms-state-policy.json
+ 1037  env
+ 1038  ^[[200~cat > bucket-policy.json << EOF\n{\n  "Version": "2012-10-17",\n  "Statement": [{\n    "Sid": "AllowPipelineRole",\n    "Effect": "Allow",\n    "Principal": {\n      "AWS": "arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"\n    },\n    "Action": [\n      "s3:ListBucket",\n      "s3:GetObject",\n      "s3:PutObject",\n      "s3:DeleteObject"\n    ],\n    "Resource": [\n      "arn:aws:s3:::${STATE_BUCKET}",\n      "arn:aws:s3:::${STATE_BUCKET}/*"\n    ]\n  }]\n}\nEOF
+ 1039  aws s3api put-bucket-policy \\n  --bucket "$STATE_BUCKET" \\n  --policy file://bucket-policy.json~
+ 1040  cat > bucket-policy.json << EOF\n{\n  "Version": "2012-10-17",\n  "Statement": [{\n    "Sid": "AllowPipelineRole",\n    "Effect": "Allow",\n    "Principal": {\n      "AWS": "arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"\n    },\n    "Action": [\n      "s3:ListBucket",\n      "s3:GetObject",\n      "s3:PutObject",\n      "s3:DeleteObject"\n    ],\n    "Resource": [\n      "arn:aws:s3:::eks-platform-tfstate-zac2026",\n      "arn:aws:s3:::eks-platform-tfstate-zac2026/*"\n    ]\naws s3api put-bucket-policy \\n  --bucket "$STATE_BUCKET" \\n  --policy file://bucket-policy.json\n
+ 1041  cat > bucket-policy.json << EOF\n{\n  "Version": "2012-10-17",\n  "Statement": [{\n    "Sid": "AllowPipelineRole",\n    "Effect": "Allow",\n    "Principal": {\n      "AWS": "arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"\n    },\n    "Action": [\n      "s3:ListBucket",\n      "s3:GetObject",\n      "s3:PutObject",\n      "s3:DeleteObject"\n    ],\n    "Resource": [\n      "arn:aws:s3:::eks-platform-tfstate-zac2026",\n      "arn:aws:s3:::eks-platform-tfstate-zac2026/*"\n    ]\naws s3api put-bucket-policy \\n  --bucket "$STATE_BUCKET" \\n  --policy file://bucket-policy.json\n\n
+ 1042  cat > bucket-policy.json << EOF\n{\n  "Version": "2012-10-17",\n  "Statement": [{\n    "Sid": "AllowPipelineRole",\n    "Effect": "Allow",\n    "Principal": {\n      "AWS": "arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"\n    },\n    "Action": [\n      "s3:ListBucket",\n      "s3:GetObject",\n      "s3:PutObject",\n      "s3:DeleteObject"\n    ],\n    "Resource": [\n      "arn:aws:s3:::eks-platform-tfstate-zac2026",\n      "arn:aws:s3:::eks-platform-tfstate-zac2026/*"\n    ]\n  }]\n}\nEOF
+ 1043  ws s3api put-bucket-policy \\n  --bucket "$STATE_BUCKET" \\n  --policy file://bucket-policy.json\n
+ 1044  aws s3api put-bucket-policy \\n  --bucket "$STATE_BUCKET" \\n  --policy file://bucket-policy.json\n
+ 1045  ws s3api put-bucket-policy \\n  --bucket "eks-platform-tfstate-zac2026/" \\n  --policy file://bucket-policy.json
+ 1046  aws s3api put-bucket-policy \\n  --bucket "eks-platform-tfstate-zac2026/" \\n  --policy file://bucket-policy.json
+ 1047  aws s3api put-bucket-policy \\n  --bucket "eks-platform-tfstate-zac2026" \\n  --policy file://bucket-policy.json
+ 1048  export ROLE_NAME="github-actions-eks"\nexport LOCK_TABLE="eks-platform-tflock"\nexport ACCOUNT_ID="406207085797"\nexport AWS_REGION="us-east-1"
+ 1049  cat > dynamodb-lock-policy.json << EOF\n{\n  "Version": "2012-10-17",\n  "Statement": [{\n    "Sid": "TerraformStateLock",\n    "Effect": "Allow",\n    "Action": [\n      "dynamodb:GetItem",\n      "dynamodb:PutItem",\n      "dynamodb:DeleteItem"\n    ],\n    "Resource": "arn:aws:dynamodb:${AWS_REGION}:${ACCOUNT_ID}:table/${LOCK_TABLE}"\n  }]\n}\nEOF\n\n# Confirm the real table name and account landed in the file\ncat dynamodb-lock-policy.json
+ 1050  aws iam put-role-policy \\n  --role-name "$ROLE_NAME" \\n  --policy-name terraform-state-lock \\n  --policy-document file://dynamodb-lock-policy.json
+ 1051  history > didthis.txt
