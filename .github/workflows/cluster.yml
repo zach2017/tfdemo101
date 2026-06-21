@@ -99,7 +99,7 @@ jobs:
             echo "::error::One or more required Variables are missing. Add them under Settings > Secrets and variables > Actions > Variables, then re-run."
             exit 1
           fi
-          echo "All required variables are present."
+          echo "All required variables are present. ZAC"
 
       # 2) Exchange the GitHub OIDC token for temporary AWS credentials by
       #    assuming the IAM role. These creds live only for the job.
@@ -182,4 +182,4 @@ jobs:
       #     exact plan file produced above so what you reviewed is what ships.
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        run: terraform apply -no-color -input=false -auto-approve tfplan
+        run: echo "terraform apply -no-color -input=false -auto-approve tfplan"
